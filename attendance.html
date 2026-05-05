@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mark Attendance</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- html2pdf library for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="script.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Mark Attendance</h1>
+            <p>Select students to mark present</p>
+        </div>
+        
+        <div class="content">
+            <div class="subject-info">
+                <h2 id="subjectTitle">Loading subject...</h2>
+            </div>
+
+            <div id="studentList" class="student-list">
+                <!-- Students will be loaded here dynamically -->
+            </div>
+
+            <div class="button-group">
+                <button id="submitBtn" class="btn-submit">✅ Submit Attendance</button>
+                <button id="viewReportBtn" class="btn-report">📋 View Report</button>
+                <button id="exportPdfBtn" class="btn-pdf">📄 Export PDF</button>
+                <button id="exportWordBtn" class="btn-word">📝 Export Word</button>
+                <a href="dashboard.html" class="btn-back">← Back to Subjects</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Attendance Management System | Mark students present by checking the box</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Subjects</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Teacher Dashboard</h1>
+            <p>Select a subject to mark attendance</p>
+        </div>
+        
+        <div class="content">
+            <div id="subjectsContainer" class="subjects">
+                <!-- Subjects will be loaded here dynamically -->
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <a href="login.html" class="btn-back" style="display: inline-block; text-decoration: none;">← Logout</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Attendance Management System | Select a subject to continue</p>
+        </div>
+    </div>
+</body>
+</html>
