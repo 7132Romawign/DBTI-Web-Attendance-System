@@ -419,6 +419,107 @@ async function exportToPDF() {
 }
 
 // =====================
+// 📊 EXPORT TO EXCEL
+// =====================
+async function exportToExcel() {
+    const subject_id = localStorage.getItem("subject_id");
+    const subject_name = localStorage.getItem("subject_name");
+    const today = new Date().toISOString().split("T")[0];
+    const displayDate = new Date().toLocaleDateString();
+
+    if (!subject_id) {
+        alert("No subject selected. Please go back and select a subject.");
+        return;
+    }
+
+    const exportBtn = document.getElementById("exportExcelBtn");
+    const originalText = exportBtn.innerHTML;
+    exportBtn.innerHTML = "⏳ Generating Excel...";
+    exportBtn.disabled = true;
+
+    try {
+        const { data, error } = await supabase
+            .from("attendance")
+            .select(`
+                status,
+                students (name)
+            `)
+            .eq("subject_id", subject_id)
+            .eq("attendance_date", today);
+
+        if (error) {
+            alert("Error loading data: " + error.message);
+            return;
+        }
+
+        if (!data || data.length === 0) {
+            alert("No attendance records for " + subject_name + " on " + displayDate + "\n\nPlease submit attendance first.");
+            return;
+        }
+
+        let excelData = [];
+        
+        excelData.push(["ATTENDANCE REPORT"]);
+        excelData.push(["Subject:", subject_name]);
+        excelData.push(["Date:", displayDate]);
+        excelData.push(["Generated:", new Date().toLocaleString()]);
+        excelData.push([]);
+        excelData.push(["#", "Student Name", "Status"]);
+        
+        let presentCount = 0;
+        let absentCount = 0;
+        let rowNumber = 1;
+        
+        data.forEach(record => {
+            if (record.status === "present") {
+                excelData.push([rowNumber, record.students.name, "PRESENT"]);
+                presentCount++;
+                rowNumber++;
+            }
+        });
+        
+        data.forEach(record => {
+            if (record.status === "absent") {
+                excelData.push([rowNumber, record.students.name, "ABSENT"]);
+                absentCount++;
+                rowNumber++;
+            }
+        });
+        
+        excelData.push([]);
+        excelData.push(["SUMMARY"]);
+        excelData.push(["Total Students:", data.length]);
+        excelData.push(["Present:", presentCount]);
+        excelData.push(["Absent:", absentCount]);
+        excelData.push(["Attendance Rate:", Math.round((presentCount / data.length) * 100) + "%"]);
+
+        const ws = XLSX.utils.aoa_to_sheet(excelData);
+        
+        ws['!cols'] = [
+            {wch: 5},
+            {wch: 35},
+            {wch: 12}
+        ];
+        
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Attendance Report");
+        
+        const fileName = `Attendance_${subject_name.replace(/[^a-zA-Z0-9]/g, '_')}_${today}.xlsx`;
+        
+        XLSX.writeFile(wb, fileName);
+        
+        alert("✅ Excel report generated successfully!");
+        
+    } catch (err) {
+        console.error("Excel Error:", err);
+        alert("Error generating Excel: " + err.message);
+    } finally {
+        exportBtn.innerHTML = originalText;
+        exportBtn.disabled = false;
+    }
+}
+
+// =====================
 // 📝 EXPORT TO WORD
 // =====================
 async function exportToWord() {
@@ -630,6 +731,11 @@ document.addEventListener("DOMContentLoaded", function() {
     var pdfBtn = document.getElementById("exportPdfBtn");
     if (pdfBtn) {
       pdfBtn.addEventListener("click", exportToPDF);
+    }
+
+    var excelBtn = document.getElementById("exportExcelBtn");
+    if (excelBtn) {
+      excelBtn.addEventListener("click", exportToExcel);
     }
 
     var wordBtn = document.getElementById("exportWordBtn");
