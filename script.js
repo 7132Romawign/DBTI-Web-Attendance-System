@@ -309,24 +309,17 @@ async function weeklyAttendanceSummary() {
   exportBtn.disabled = true;
 
   try {
-    // Get current date and calculate Monday of this week
     const today = new Date();
-    const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    
-    // Calculate Monday (if today is Sunday, go back 6 days)
+    const currentDay = today.getDay();
     const daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
     const monday = new Date(today);
     monday.setDate(today.getDate() - daysToMonday);
-    
-    // Calculate Friday (Monday + 4 days)
     const friday = new Date(monday);
     friday.setDate(monday.getDate() + 4);
     
-    // Format dates for display
     const weekStart = monday.toLocaleDateString();
     const weekEnd = friday.toLocaleDateString();
     
-    // Get all students for this subject
     const { data: studentsData, error: studentsError } = await supabase
       .from("enrollments")
       .select(`
@@ -345,7 +338,6 @@ async function weeklyAttendanceSummary() {
       return;
     }
     
-    // Prepare array of student names and IDs
     let students = [];
     studentsData.forEach(item => {
       students.push({
@@ -354,7 +346,6 @@ async function weeklyAttendanceSummary() {
       });
     });
     
-    // Get attendance for the entire week (Monday to Friday)
     const startDate = monday.toISOString().split("T")[0];
     const endDate = friday.toISOString().split("T")[0];
     
@@ -370,7 +361,6 @@ async function weeklyAttendanceSummary() {
       return;
     }
     
-    // Build a map of attendance by student and date
     let attendanceMap = {};
     if (attendanceData) {
       attendanceData.forEach(record => {
@@ -383,7 +373,6 @@ async function weeklyAttendanceSummary() {
       });
     }
     
-    // Generate the 5 weekdays (Monday to Friday)
     let weekDates = [];
     let dateLabels = [];
     for (let i = 0; i < 5; i++) {
@@ -395,14 +384,12 @@ async function weeklyAttendanceSummary() {
       dateLabels.push(dayName);
     }
     
-    // Build the report content
     let reportMessage = "📅 WEEKLY ATTENDANCE SUMMARY\n";
     reportMessage += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
     reportMessage += "Subject: " + subject_name + "\n";
     reportMessage += "Week: " + weekStart + " to " + weekEnd + "\n";
     reportMessage += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
     
-    // Header row with dates
     reportMessage += "Student Name".padEnd(25);
     for (let i = 0; i < dateLabels.length; i++) {
       reportMessage += dateLabels[i].padEnd(10);
@@ -410,11 +397,9 @@ async function weeklyAttendanceSummary() {
     reportMessage += "Total".padEnd(8) + "%\n";
     reportMessage += "━".repeat(25 + (10 * 5) + 8 + 4) + "\n";
     
-    // Calculate summary statistics
     let totalPresentWeek = 0;
     let totalPossible = 0;
     
-    // Add each student's attendance
     students.forEach(student => {
       let row = student.name.substring(0, 22).padEnd(25);
       let presentCount = 0;
@@ -432,7 +417,7 @@ async function weeklyAttendanceSummary() {
           row += "✗".padEnd(10);
           totalDays++;
         } else {
-          row += "?".padEnd(10); // No record yet
+          row += "?".padEnd(10);
         }
       }
       
@@ -452,7 +437,6 @@ async function weeklyAttendanceSummary() {
     
     alert(reportMessage);
     
-    // Also offer to export as text file
     if (confirm("Do you want to save this report as a text file?")) {
       const blob = new Blob([reportMessage], { type: "text/plain" });
       const link = document.createElement("a");
@@ -581,7 +565,7 @@ async function exportToPDF() {
     
     const opt = {
       margin: [0.5, 0.5, 0.5, 0.5],
-      filename: `Attendance_${subject_name.replace(/[^a-zA-Z0-9]/g, '_')}_${today}.pdf`,
+      filename: "Attendance_" + subject_name.replace(/[^a-zA-Z0-9]/g, '_') + "_" + today + ".pdf",
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, letterRendering: true },
       jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
@@ -605,30 +589,270 @@ async function exportToPDF() {
 // 📊 EXPORT TO EXCEL
 // =====================
 async function exportToExcel() {
-    const subject_id = localStorage.getItem("subject_id");
-    const subject_name = localStorage.getItem("subject_name");
-    const today = new Date().toISOString().split("T")[0];
-    const displayDate = new Date().toLocaleDateString();
+  const subject_id = localStorage.getItem("subject_id");
+  const subject_name = localStorage.getItem("subject_name");
+  const today = new Date().toISOString().split("T")[0];
+  const displayDate = new Date().toLocaleDateString();
 
-    if (!subject_id) {
-        alert("No subject selected. Please go back and select a subject.");
-        return;
+  if (!subject_id) {
+    alert("No subject selected. Please go back and select a subject.");
+    return;
+  }
+
+  const exportBtn = document.getElementById("exportExcelBtn");
+  const originalText = exportBtn.innerHTML;
+  exportBtn.innerHTML = "⏳ Generating Excel...";
+  exportBtn.disabled = true;
+
+  try {
+    const { data, error } = await supabase
+      .from("attendance")
+      .select(`
+        status,
+        students (name)
+      `)
+      .eq("subject_id", subject_id)
+      .eq("attendance_date", today);
+
+    if (error) {
+      alert("Error loading data: " + error.message);
+      return;
     }
 
-    const exportBtn = document.getElementById("exportExcelBtn");
-    const originalText = exportBtn.innerHTML;
-    exportBtn.innerHTML = "⏳ Generating Excel...";
-    exportBtn.disabled = true;
+    if (!data || data.length === 0) {
+      alert("No attendance records for " + subject_name + " on " + displayDate + "\n\nPlease submit attendance first.");
+      return;
+    }
 
-    try {
-        const { data, error } = await supabase
-            .from("attendance")
-            .select(`
-                status,
-                students (name)
-            `)
-            .eq("subject_id", subject_id)
-            .eq("attendance_date", today);
+    let excelData = [];
+    
+    excelData.push(["ATTENDANCE REPORT"]);
+    excelData.push(["Subject:", subject_name]);
+    excelData.push(["Date:", displayDate]);
+    excelData.push(["Generated:", new Date().toLocaleString()]);
+    excelData.push([]);
+    excelData.push(["#", "Student Name", "Status"]);
+    
+    let presentCount = 0;
+    let absentCount = 0;
+    let rowNumber = 1;
+    
+    data.forEach(record => {
+      if (record.status === "present") {
+        excelData.push([rowNumber, record.students.name, "PRESENT"]);
+        presentCount++;
+        rowNumber++;
+      }
+    });
+    
+    data.forEach(record => {
+      if (record.status === "absent") {
+        excelData.push([rowNumber, record.students.name, "ABSENT"]);
+        absentCount++;
+        rowNumber++;
+      }
+    });
+    
+    excelData.push([]);
+    excelData.push(["SUMMARY"]);
+    excelData.push(["Total Students:", data.length]);
+    excelData.push(["Present:", presentCount]);
+    excelData.push(["Absent:", absentCount]);
+    excelData.push(["Attendance Rate:", Math.round((presentCount / data.length) * 100) + "%"]);
 
-        if (error) {
-            alert("Error loading data: " + error
+    const ws = XLSX.utils.aoa_to_sheet(excelData);
+    
+    ws['!cols'] = [
+      {wch: 5},
+      {wch: 35},
+      {wch: 12}
+    ];
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Attendance Report");
+    
+    const fileName = "Attendance_" + subject_name.replace(/[^a-zA-Z0-9]/g, '_') + "_" + today + ".xlsx";
+    
+    XLSX.writeFile(wb, fileName);
+    
+    alert("✅ Excel report generated successfully!");
+    
+  } catch (err) {
+    console.error("Excel Error:", err);
+    alert("Error generating Excel: " + err.message);
+  } finally {
+    exportBtn.innerHTML = originalText;
+    exportBtn.disabled = false;
+  }
+}
+
+// =====================
+// 📝 EXPORT TO WORD
+// =====================
+async function exportToWord() {
+  const subject_id = localStorage.getItem("subject_id");
+  const subject_name = localStorage.getItem("subject_name");
+  const today = new Date().toISOString().split("T")[0];
+  const displayDate = new Date().toLocaleDateString();
+
+  if (!subject_id) {
+    alert("No subject selected. Please go back and select a subject.");
+    return;
+  }
+
+  const exportBtn = document.getElementById("exportWordBtn");
+  const originalText = exportBtn.innerHTML;
+  exportBtn.innerHTML = "⏳ Generating Word...";
+  exportBtn.disabled = true;
+
+  try {
+    const { data, error } = await supabase
+      .from("attendance")
+      .select(`
+        status,
+        students (name)
+      `)
+      .eq("subject_id", subject_id)
+      .eq("attendance_date", today);
+
+    if (error) {
+      alert("Error loading data: " + error.message);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      alert("No attendance records for " + subject_name + " on " + displayDate + "\n\nPlease submit attendance first.");
+      return;
+    }
+
+    let presentStudents = [];
+    let absentStudents = [];
+    
+    data.forEach(function(r) {
+      if (r.status === "present") {
+        presentStudents.push(r.students.name);
+      } else {
+        absentStudents.push(r.students.name);
+      }
+    });
+
+    const currentTime = new Date().toLocaleString();
+    
+    const wordContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Attendance Report - ${subject_name}</title>
+        <style>
+          body { font-family: Calibri, Arial, sans-serif; margin: 40px; line-height: 1.6; }
+          h1 { color: #2c3e50; text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+          .present-title { color: #27ae60; border-bottom: 2px solid #27ae60; margin-top: 30px; }
+          .absent-title { color: #e74c3c; border-bottom: 2px solid #e74c3c; margin-top: 30px; }
+          .info { background: #ecf0f1; padding: 15px; margin: 20px 0; border-radius: 5px; }
+          table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+          th, td { padding: 10px; border-bottom: 1px solid #bdc3c7; text-align: left; }
+          th { background: #34495e; color: white; }
+          .footer { margin-top: 50px; text-align: center; color: #7f8c8d; font-size: 12px; border-top: 1px solid #bdc3c7; padding-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <h1>📋 ATTENDANCE REPORT</h1>
+        <div class="info">
+          <p><strong>Subject:</strong> ${subject_name}</p>
+          <p><strong>Date:</strong> ${displayDate}</p>
+          <p><strong>Generated:</strong> ${currentTime}</p>
+        </div>
+        <h2 class="present-title">✅ PRESENT (${presentStudents.length})</h2>
+        <table>
+          <thead><tr><th>#</th><th>Student Name</th><th>Status</th></tr></thead>
+          <tbody>
+            ${presentStudents.map((student, index) => `<tr><td>${index + 1}</td><td>${student}</td><td style="color: #27ae60;">Present</td></tr>`).join('')}
+            ${presentStudents.length === 0 ? '<tr><td colspan="3" style="text-align: center;">No students present</td></tr>' : ''}
+          </tbody>
+        </table>
+        <h2 class="absent-title">❌ ABSENT (${absentStudents.length})</h2>
+        <table>
+          <thead><tr><th>#</th><th>Student Name</th><th>Status</th></tr></thead>
+          <tbody>
+            ${absentStudents.map((student, index) => `<tr><td>${index + 1}</td><td>${student}</td><td style="color: #e74c3c;">Absent</td></tr>`).join('')}
+            ${absentStudents.length === 0 ? '<tr><td colspan="3" style="text-align: center;">No students absent</td></tr>' : ''}
+          </tbody>
+        </table>
+        <div class="footer">
+          <p>Total Students: ${data.length} | Attendance Rate: ${Math.round((presentStudents.length / data.length) * 100)}%</p>
+          <p>Generated by Web Attendance System</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([wordContent], { type: 'application/msword' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = "Attendance_" + subject_name.replace(/[^a-zA-Z0-9]/g, '_') + "_" + today + ".doc";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    alert("✅ Word document generated successfully!");
+    
+  } catch (err) {
+    console.error("Word Error:", err);
+    alert("Error generating Word document: " + err.message);
+  } finally {
+    exportBtn.innerHTML = originalText;
+    exportBtn.disabled = false;
+  }
+}
+
+// =====================
+// 📌 AUTO LOAD PAGES
+// =====================
+document.addEventListener("DOMContentLoaded", function() {
+  console.log("DOM loaded, current path: " + window.location.pathname);
+
+  if (window.location.pathname.includes("dashboard.html")) {
+    loadSubjects();
+  }
+
+  if (window.location.pathname.includes("attendance.html")) {
+    var title = document.getElementById("subjectTitle");
+    if (title) {
+      title.innerText = localStorage.getItem("subject_name");
+    }
+    loadStudents();
+
+    var submitBtn = document.getElementById("submitBtn");
+    if (submitBtn) {
+      submitBtn.addEventListener("click", submitAttendance);
+    }
+
+    var reportBtn = document.getElementById("viewReportBtn");
+    if (reportBtn) {
+      reportBtn.addEventListener("click", viewAttendanceReport);
+    }
+
+    var weeklyBtn = document.getElementById("weeklyReportBtn");
+    if (weeklyBtn) {
+      weeklyBtn.addEventListener("click", weeklyAttendanceSummary);
+    }
+
+    var pdfBtn = document.getElementById("exportPdfBtn");
+    if (pdfBtn) {
+      pdfBtn.addEventListener("click", exportToPDF);
+    }
+
+    var excelBtn = document.getElementById("exportExcelBtn");
+    if (excelBtn) {
+      excelBtn.addEventListener("click", exportToExcel);
+    }
+
+    var wordBtn = document.getElementById("exportWordBtn");
+    if (wordBtn) {
+      wordBtn.addEventListener("click", exportToWord);
+    }
+  }
+});
