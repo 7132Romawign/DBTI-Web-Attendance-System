@@ -233,7 +233,7 @@ async function submitAttendance() {
 }
 
 // =====================
-// 📋 VIEW ATTENDANCE REPORT
+// 📋 VIEW ATTENDANCE REPORT (DAILY)
 // =====================
 async function viewAttendanceReport() {
   const subject_id = localStorage.getItem("subject_id");
@@ -289,6 +289,189 @@ async function viewAttendanceReport() {
   reportMessage += "\n📈 Attendance Rate: " + Math.round((presentStudents.length / data.length) * 100) + "%";
 
   alert(reportMessage);
+}
+
+// =====================
+// 📅 WEEKLY ATTENDANCE SUMMARY
+// =====================
+async function weeklyAttendanceSummary() {
+  const subject_id = localStorage.getItem("subject_id");
+  const subject_name = localStorage.getItem("subject_name");
+
+  if (!subject_id) {
+    alert("No subject selected. Please go back and select a subject.");
+    return;
+  }
+
+  const exportBtn = document.getElementById("weeklyReportBtn");
+  const originalText = exportBtn.innerHTML;
+  exportBtn.innerHTML = "⏳ Loading...";
+  exportBtn.disabled = true;
+
+  try {
+    // Get current date and calculate Monday of this week
+    const today = new Date();
+    const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    
+    // Calculate Monday (if today is Sunday, go back 6 days)
+    const daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - daysToMonday);
+    
+    // Calculate Friday (Monday + 4 days)
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    
+    // Format dates for display
+    const weekStart = monday.toLocaleDateString();
+    const weekEnd = friday.toLocaleDateString();
+    
+    // Get all students for this subject
+    const { data: studentsData, error: studentsError } = await supabase
+      .from("enrollments")
+      .select(`
+        student_id,
+        students (id, name)
+      `)
+      .eq("subject_id", subject_id);
+    
+    if (studentsError) {
+      alert("Error loading students: " + studentsError.message);
+      return;
+    }
+    
+    if (!studentsData || studentsData.length === 0) {
+      alert("No students enrolled in this subject.");
+      return;
+    }
+    
+    // Prepare array of student names and IDs
+    let students = [];
+    studentsData.forEach(item => {
+      students.push({
+        id: item.student_id,
+        name: item.students.name
+      });
+    });
+    
+    // Get attendance for the entire week (Monday to Friday)
+    const startDate = monday.toISOString().split("T")[0];
+    const endDate = friday.toISOString().split("T")[0];
+    
+    const { data: attendanceData, error: attendanceError } = await supabase
+      .from("attendance")
+      .select("student_id, attendance_date, status")
+      .eq("subject_id", subject_id)
+      .gte("attendance_date", startDate)
+      .lte("attendance_date", endDate);
+    
+    if (attendanceError) {
+      alert("Error loading attendance: " + attendanceError.message);
+      return;
+    }
+    
+    // Build a map of attendance by student and date
+    let attendanceMap = {};
+    if (attendanceData) {
+      attendanceData.forEach(record => {
+        const studentId = record.student_id;
+        const date = record.attendance_date;
+        if (!attendanceMap[studentId]) {
+          attendanceMap[studentId] = {};
+        }
+        attendanceMap[studentId][date] = record.status;
+      });
+    }
+    
+    // Generate the 5 weekdays (Monday to Friday)
+    let weekDates = [];
+    let dateLabels = [];
+    for (let i = 0; i < 5; i++) {
+      let currentDate = new Date(monday);
+      currentDate.setDate(monday.getDate() + i);
+      const dateStr = currentDate.toISOString().split("T")[0];
+      const dayName = currentDate.toLocaleDateString(undefined, { weekday: 'short' });
+      weekDates.push(dateStr);
+      dateLabels.push(dayName);
+    }
+    
+    // Build the report content
+    let reportMessage = "📅 WEEKLY ATTENDANCE SUMMARY\n";
+    reportMessage += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+    reportMessage += "Subject: " + subject_name + "\n";
+    reportMessage += "Week: " + weekStart + " to " + weekEnd + "\n";
+    reportMessage += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+    
+    // Header row with dates
+    reportMessage += "Student Name".padEnd(25);
+    for (let i = 0; i < dateLabels.length; i++) {
+      reportMessage += dateLabels[i].padEnd(10);
+    }
+    reportMessage += "Total".padEnd(8) + "%\n";
+    reportMessage += "━".repeat(25 + (10 * 5) + 8 + 4) + "\n";
+    
+    // Calculate summary statistics
+    let totalPresentWeek = 0;
+    let totalPossible = 0;
+    
+    // Add each student's attendance
+    students.forEach(student => {
+      let row = student.name.substring(0, 22).padEnd(25);
+      let presentCount = 0;
+      let totalDays = 0;
+      
+      for (let i = 0; i < weekDates.length; i++) {
+        const date = weekDates[i];
+        const status = attendanceMap[student.id] && attendanceMap[student.id][date];
+        
+        if (status === "present") {
+          row += "✓".padEnd(10);
+          presentCount++;
+          totalDays++;
+        } else if (status === "absent") {
+          row += "✗".padEnd(10);
+          totalDays++;
+        } else {
+          row += "?".padEnd(10); // No record yet
+        }
+      }
+      
+      const percentage = totalDays > 0 ? Math.round((presentCount / totalDays) * 100) : 0;
+      row += presentCount + "/" + totalDays;
+      row = row.padEnd(25 + (10 * 5) + 8) + percentage + "%";
+      reportMessage += row + "\n";
+      
+      totalPresentWeek += presentCount;
+      totalPossible += totalDays;
+    });
+    
+    reportMessage += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+    const overallPercentage = totalPossible > 0 ? Math.round((totalPresentWeek / totalPossible) * 100) : 0;
+    reportMessage += "📊 Class Overall: " + totalPresentWeek + "/" + totalPossible + " (" + overallPercentage + "%)\n";
+    reportMessage += "📅 Week: " + weekStart + " to " + weekEnd + "\n";
+    
+    alert(reportMessage);
+    
+    // Also offer to export as text file
+    if (confirm("Do you want to save this report as a text file?")) {
+      const blob = new Blob([reportMessage], { type: "text/plain" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.href = url;
+      link.download = "Weekly_Attendance_" + subject_name.replace(/[^a-zA-Z0-9]/g, '_') + "_" + startDate + "_to_" + endDate + ".txt";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+    
+  } catch (err) {
+    console.error("Weekly Summary Error:", err);
+    alert("Error generating weekly summary: " + err.message);
+  } finally {
+    exportBtn.innerHTML = originalText;
+    exportBtn.disabled = false;
+  }
 }
 
 // =====================
@@ -448,299 +631,4 @@ async function exportToExcel() {
             .eq("attendance_date", today);
 
         if (error) {
-            alert("Error loading data: " + error.message);
-            return;
-        }
-
-        if (!data || data.length === 0) {
-            alert("No attendance records for " + subject_name + " on " + displayDate + "\n\nPlease submit attendance first.");
-            return;
-        }
-
-        let excelData = [];
-        
-        excelData.push(["ATTENDANCE REPORT"]);
-        excelData.push(["Subject:", subject_name]);
-        excelData.push(["Date:", displayDate]);
-        excelData.push(["Generated:", new Date().toLocaleString()]);
-        excelData.push([]);
-        excelData.push(["#", "Student Name", "Status"]);
-        
-        let presentCount = 0;
-        let absentCount = 0;
-        let rowNumber = 1;
-        
-        data.forEach(record => {
-            if (record.status === "present") {
-                excelData.push([rowNumber, record.students.name, "PRESENT"]);
-                presentCount++;
-                rowNumber++;
-            }
-        });
-        
-        data.forEach(record => {
-            if (record.status === "absent") {
-                excelData.push([rowNumber, record.students.name, "ABSENT"]);
-                absentCount++;
-                rowNumber++;
-            }
-        });
-        
-        excelData.push([]);
-        excelData.push(["SUMMARY"]);
-        excelData.push(["Total Students:", data.length]);
-        excelData.push(["Present:", presentCount]);
-        excelData.push(["Absent:", absentCount]);
-        excelData.push(["Attendance Rate:", Math.round((presentCount / data.length) * 100) + "%"]);
-
-        const ws = XLSX.utils.aoa_to_sheet(excelData);
-        
-        ws['!cols'] = [
-            {wch: 5},
-            {wch: 35},
-            {wch: 12}
-        ];
-        
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Attendance Report");
-        
-        const fileName = `Attendance_${subject_name.replace(/[^a-zA-Z0-9]/g, '_')}_${today}.xlsx`;
-        
-        XLSX.writeFile(wb, fileName);
-        
-        alert("✅ Excel report generated successfully!");
-        
-    } catch (err) {
-        console.error("Excel Error:", err);
-        alert("Error generating Excel: " + err.message);
-    } finally {
-        exportBtn.innerHTML = originalText;
-        exportBtn.disabled = false;
-    }
-}
-
-// =====================
-// 📝 EXPORT TO WORD
-// =====================
-async function exportToWord() {
-  const subject_id = localStorage.getItem("subject_id");
-  const subject_name = localStorage.getItem("subject_name");
-  const today = new Date().toISOString().split("T")[0];
-  const displayDate = new Date().toLocaleDateString();
-
-  if (!subject_id) {
-    alert("No subject selected. Please go back and select a subject.");
-    return;
-  }
-
-  const exportBtn = document.getElementById("exportWordBtn");
-  const originalText = exportBtn.innerHTML;
-  exportBtn.innerHTML = "⏳ Generating Word...";
-  exportBtn.disabled = true;
-
-  try {
-    const { data, error } = await supabase
-      .from("attendance")
-      .select(`
-        status,
-        students (name)
-      `)
-      .eq("subject_id", subject_id)
-      .eq("attendance_date", today);
-
-    if (error) {
-      alert("Error loading data: " + error.message);
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      alert("No attendance records for " + subject_name + " on " + displayDate + "\n\nPlease submit attendance first.");
-      return;
-    }
-
-    let presentStudents = [];
-    let absentStudents = [];
-    
-    data.forEach(function(r) {
-      if (r.status === "present") {
-        presentStudents.push(r.students.name);
-      } else {
-        absentStudents.push(r.students.name);
-      }
-    });
-
-    const currentTime = new Date().toLocaleString();
-    
-    const wordContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Attendance Report - ${subject_name}</title>
-        <style>
-          body {
-            font-family: Calibri, Arial, sans-serif;
-            margin: 40px;
-            line-height: 1.6;
-          }
-          h1 {
-            color: #2c3e50;
-            text-align: center;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
-          }
-          .present-title {
-            color: #27ae60;
-            border-bottom: 2px solid #27ae60;
-            margin-top: 30px;
-          }
-          .absent-title {
-            color: #e74c3c;
-            border-bottom: 2px solid #e74c3c;
-            margin-top: 30px;
-          }
-          .info {
-            background: #ecf0f1;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 5px;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-          }
-          th, td {
-            padding: 10px;
-            border-bottom: 1px solid #bdc3c7;
-            text-align: left;
-          }
-          th {
-            background: #34495e;
-            color: white;
-          }
-          .footer {
-            margin-top: 50px;
-            text-align: center;
-            color: #7f8c8d;
-            font-size: 12px;
-            border-top: 1px solid #bdc3c7;
-            padding-top: 20px;
-          }
-        </style>
-      </head>
-      <body>
-        <h1>📋 ATTENDANCE REPORT</h1>
-        
-        <div class="info">
-          <p><strong>Subject:</strong> ${subject_name}</p>
-          <p><strong>Date:</strong> ${displayDate}</p>
-          <p><strong>Generated:</strong> ${currentTime}</p>
-        </div>
-        
-        <h2 class="present-title">✅ PRESENT (${presentStudents.length})</h2>
-        <table>
-          <thead>
-            <tr><th>#</th><th>Student Name</th><th>Status</th></tr>
-          </thead>
-          <tbody>
-            ${presentStudents.map((student, index) => `
-              <tr>
-                <td>${index + 1}</td>
-                <td>${student}</td>
-                <td style="color: #27ae60;">Present</td>
-              </tr>
-            `).join('')}
-            ${presentStudents.length === 0 ? '<tr><td colspan="3" style="text-align: center;">No students present</td></tr>' : ''}
-          </tbody>
-        </table>
-        
-        <h2 class="absent-title">❌ ABSENT (${absentStudents.length})</h2>
-        <table>
-          <thead>
-            <tr><th>#</th><th>Student Name</th><th>Status</th></tr>
-          </thead>
-          <tbody>
-            ${absentStudents.map((student, index) => `
-              <tr>
-                <td>${index + 1}</td>
-                <td>${student}</td>
-                <td style="color: #e74c3c;">Absent</td>
-              </tr>
-            `).join('')}
-            ${absentStudents.length === 0 ? '<tr><td colspan="3" style="text-align: center;">No students absent</td></tr>' : ''}
-          </tbody>
-        </table>
-        
-        <div class="footer">
-          <p>Total Students: ${data.length} | Attendance Rate: ${Math.round((presentStudents.length / data.length) * 100)}%</p>
-          <p>Generated by Web Attendance System</p>
-        </div>
-      </body>
-      </html>
-    `;
-
-    const blob = new Blob([wordContent], { type: 'application/msword' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.download = `Attendance_${subject_name.replace(/[^a-zA-Z0-9]/g, '_')}_${today}.doc`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    alert("✅ Word document generated successfully!");
-    
-  } catch (err) {
-    console.error("Word Error:", err);
-    alert("Error generating Word document: " + err.message);
-  } finally {
-    exportBtn.innerHTML = originalText;
-    exportBtn.disabled = false;
-  }
-}
-
-// =====================
-// 📌 AUTO LOAD PAGES
-// =====================
-document.addEventListener("DOMContentLoaded", function() {
-  console.log("DOM loaded, current path: " + window.location.pathname);
-
-  if (window.location.pathname.includes("dashboard.html")) {
-    loadSubjects();
-  }
-
-  if (window.location.pathname.includes("attendance.html")) {
-    var title = document.getElementById("subjectTitle");
-    if (title) {
-      title.innerText = localStorage.getItem("subject_name");
-    }
-    loadStudents();
-
-    var submitBtn = document.getElementById("submitBtn");
-    if (submitBtn) {
-      submitBtn.addEventListener("click", submitAttendance);
-    }
-
-    var reportBtn = document.getElementById("viewReportBtn");
-    if (reportBtn) {
-      reportBtn.addEventListener("click", viewAttendanceReport);
-    }
-
-    var pdfBtn = document.getElementById("exportPdfBtn");
-    if (pdfBtn) {
-      pdfBtn.addEventListener("click", exportToPDF);
-    }
-
-    var excelBtn = document.getElementById("exportExcelBtn");
-    if (excelBtn) {
-      excelBtn.addEventListener("click", exportToExcel);
-    }
-
-    var wordBtn = document.getElementById("exportWordBtn");
-    if (wordBtn) {
-      wordBtn.addEventListener("click", exportToWord);
-    }
-  }
-});
+            alert("Error loading data: " + error
