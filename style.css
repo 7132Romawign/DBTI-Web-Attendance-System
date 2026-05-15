@@ -138,7 +138,7 @@ button {
   background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
 
-/* Report Button */
+/* Daily Report Button */
 .btn-report {
   background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
   color: white;
@@ -176,6 +176,26 @@ button {
   transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(243, 156, 18, 0.3);
   background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%);
+}
+
+/* Cumulative Button */
+.btn-cumulative {
+  background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 130px;
+}
+
+.btn-cumulative:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(142, 68, 173, 0.3);
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
 }
 
 /* PDF Button */
@@ -301,7 +321,7 @@ button {
     flex-direction: column;
   }
   
-  .btn-submit, .btn-report, .btn-weekly, .btn-pdf, .btn-excel, .btn-word, .btn-back {
+  .btn-submit, .btn-report, .btn-weekly, .btn-cumulative, .btn-pdf, .btn-excel, .btn-word, .btn-back {
     width: 100%;
     min-width: unset;
   }
