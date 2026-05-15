@@ -129,7 +129,7 @@ button {
   cursor: pointer;
   transition: all 0.3s ease;
   flex: 1;
-  min-width: 140px;
+  min-width: 130px;
 }
 
 .btn-submit:hover {
@@ -149,13 +149,33 @@ button {
   cursor: pointer;
   transition: all 0.3s ease;
   flex: 1;
-  min-width: 140px;
+  min-width: 130px;
 }
 
 .btn-report:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(33, 147, 176, 0.3);
   background: linear-gradient(135deg, #6dd5ed 0%, #2193b0 100%);
+}
+
+/* Weekly Button */
+.btn-weekly {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 130px;
+}
+
+.btn-weekly:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(243, 156, 18, 0.3);
+  background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%);
 }
 
 /* PDF Button */
@@ -169,7 +189,7 @@ button {
   cursor: pointer;
   transition: all 0.3s ease;
   flex: 1;
-  min-width: 140px;
+  min-width: 130px;
 }
 
 .btn-pdf:hover {
@@ -189,7 +209,7 @@ button {
   cursor: pointer;
   transition: all 0.3s ease;
   flex: 1;
-  min-width: 140px;
+  min-width: 130px;
 }
 
 .btn-excel:hover {
@@ -209,7 +229,7 @@ button {
   cursor: pointer;
   transition: all 0.3s ease;
   flex: 1;
-  min-width: 140px;
+  min-width: 130px;
 }
 
 .btn-word:hover {
@@ -232,7 +252,7 @@ button {
   display: inline-block;
   text-align: center;
   flex: 1;
-  min-width: 140px;
+  min-width: 130px;
 }
 
 .btn-back:hover {
@@ -281,7 +301,7 @@ button {
     flex-direction: column;
   }
   
-  .btn-submit, .btn-report, .btn-pdf, .btn-excel, .btn-word, .btn-back {
+  .btn-submit, .btn-report, .btn-weekly, .btn-pdf, .btn-excel, .btn-word, .btn-back {
     width: 100%;
     min-width: unset;
   }
