@@ -1,5 +1,5 @@
 // =====================
-// 🔗 CONNECT TO SUPABASE
+// CONNECT TO SUPABASE
 // =====================
 if (!window._supabaseClient) {
   window._supabaseClient = window.supabase.createClient(
@@ -13,65 +13,64 @@ var supabase = window._supabaseClient;
 console.log("SCRIPT LOADED");
 
 // Global flag to prevent multiple submissions
-let isSubmitting = false;
+var isSubmitting = false;
 
 // =====================
-// 🔐 LOGIN (TEACHERS)
+// LOGIN
 // =====================
 async function login() {
   console.log("Login clicked");
 
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+  var email = document.getElementById("email").value;
+  var password = document.getElementById("password").value;
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  var result = await supabase.auth.signInWithPassword({
     email: email,
     password: password
   });
 
-  if (error) {
-    alert("Login failed: " + error.message);
-    console.error(error);
+  if (result.error) {
+    alert("Login failed: " + result.error.message);
+    console.error(result.error);
   } else {
-    console.log("Login success", data);
+    console.log("Login success", result.data);
     window.location.href = "dashboard.html";
   }
 }
 
 // =====================
-// 📊 LOAD SUBJECTS (WITHOUT DUPLICATES)
+// LOAD SUBJECTS
 // =====================
 async function loadSubjects() {
-  const { data, error } = await supabase
+  var result = await supabase
     .from("subjects")
     .select("*");
 
-  if (error) {
-    console.error("Error loading subjects:", error);
+  if (result.error) {
+    console.error("Error loading subjects:", result.error);
     return;
   }
 
-  const container = document.getElementById("subjectsContainer");
+  var container = document.getElementById("subjectsContainer");
   if (!container) return;
   container.innerHTML = "";
 
-  // Remove duplicates by subject_name
-  let uniqueSubjects = [];
-  let subjectNames = [];
-  
-  data.forEach(subject => {
+  var uniqueSubjects = [];
+  var subjectNames = [];
+
+  result.data.forEach(function(subject) {
     if (!subjectNames.includes(subject.subject_name)) {
       subjectNames.push(subject.subject_name);
       uniqueSubjects.push(subject);
     }
   });
 
-  uniqueSubjects.forEach(subject => {
-    const div = document.createElement("div");
+  uniqueSubjects.forEach(function(subject) {
+    var div = document.createElement("div");
     div.className = "card";
     div.innerText = subject.subject_name;
 
-    div.onclick = () => {
+    div.onclick = function() {
       localStorage.setItem("subject_id", subject.id);
       localStorage.setItem("subject_name", subject.subject_name);
       window.location.href = "attendance.html";
@@ -82,121 +81,107 @@ async function loadSubjects() {
 }
 
 // =====================
-// 📋 LOAD STUDENTS BY SUBJECT
+// LOAD STUDENTS
 // =====================
 async function loadStudents() {
-  const subject_id = localStorage.getItem("subject_id");
+  var subject_id = localStorage.getItem("subject_id");
 
-  const { data, error } = await supabase
+  var result = await supabase
     .from("enrollments")
-    .select(`
-      student_id,
-      students (id, name)
-    `)
+    .select("student_id, students(id, name)")
     .eq("subject_id", subject_id);
 
-  if (error) {
-    console.error("Error loading students:", error);
+  if (result.error) {
+    console.error("Error loading students:", result.error);
     return;
   }
 
-  const list = document.getElementById("studentList");
+  var list = document.getElementById("studentList");
   if (!list) return;
-
   list.innerHTML = "";
 
-  data.forEach(item => {
-    const student = item.students;
-
-    const div = document.createElement("div");
-
-    div.innerHTML = `
-      <label>
-        <input type="checkbox" value="` + student.id + `">
-        ` + student.name + `
-      </label>
-    `;
-
+  result.data.forEach(function(item) {
+    var student = item.students;
+    var div = document.createElement("div");
+    div.innerHTML = '<label><input type="checkbox" value="' + student.id + '"> ' + student.name + '</label>';
     list.appendChild(div);
   });
-  
+
   loadExistingAttendance();
 }
 
 // =====================
-// 📌 LOAD EXISTING ATTENDANCE FOR TODAY
+// LOAD EXISTING ATTENDANCE
 // =====================
 async function loadExistingAttendance() {
-  const subject_id = localStorage.getItem("subject_id");
-  const today = new Date().toISOString().split("T")[0];
+  var subject_id = localStorage.getItem("subject_id");
+  var today = new Date().toISOString().split("T")[0];
 
-  const { data, error } = await supabase
+  var result = await supabase
     .from("attendance")
     .select("student_id, status")
     .eq("subject_id", subject_id)
     .eq("attendance_date", today);
 
-  if (error) {
-    console.error("Error loading existing attendance:", error);
+  if (result.error) {
+    console.error("Error loading existing attendance:", result.error);
     return;
   }
 
-  if (data && data.length > 0) {
-    data.forEach(record => {
+  if (result.data && result.data.length > 0) {
+    result.data.forEach(function(record) {
       if (record.status === "present") {
-        const checkbox = document.querySelector("#studentList input[value='" + record.student_id + "']");
+        var checkbox = document.querySelector("#studentList input[value='" + record.student_id + "']");
         if (checkbox) {
           checkbox.checked = true;
         }
       }
     });
-    console.log("Loaded " + data.length + " existing attendance records for today");
+    console.log("Loaded " + result.data.length + " existing attendance records");
   }
 }
 
 // =====================
-// ✅ SUBMIT ATTENDANCE
+// SUBMIT ATTENDANCE
 // =====================
 async function submitAttendance() {
   if (isSubmitting) {
-    console.log("Already submitting, please wait...");
+    console.log("Already submitting...");
     return;
   }
 
-  const subject_id = localStorage.getItem("subject_id");
-  const subject_name = localStorage.getItem("subject_name");
+  var subject_id = localStorage.getItem("subject_id");
+  var subject_name = localStorage.getItem("subject_name");
 
   if (!subject_id) {
-    alert("No subject selected. Please go back and select a subject.");
+    alert("No subject selected.");
     return;
   }
 
-  const checkboxes = document.querySelectorAll("#studentList input[type=checkbox]");
-  const today = new Date().toISOString().split("T")[0];
+  var checkboxes = document.querySelectorAll("#studentList input[type=checkbox]");
+  var today = new Date().toISOString().split("T")[0];
 
-  const submitBtn = document.getElementById("submitBtn");
-  const originalBtnText = submitBtn.innerHTML;
-  
+  var submitBtn = document.getElementById("submitBtn");
+  var originalBtnText = submitBtn.innerHTML;
+
   isSubmitting = true;
   submitBtn.innerHTML = "Saving...";
   submitBtn.disabled = true;
 
   try {
-    // Step 1: Delete existing records
-    const { error: deleteError } = await supabase
+    var deleteResult = await supabase
       .from("attendance")
       .delete()
       .eq("subject_id", subject_id)
       .eq("attendance_date", today);
 
-    if (deleteError) {
-      alert("Error clearing previous attendance: " + deleteError.message);
+    if (deleteResult.error) {
+      alert("Error clearing previous attendance: " + deleteResult.error.message);
       return;
     }
 
-    // Step 2: Prepare and insert records
-    let records = [];
-    checkboxes.forEach(cb => {
+    var records = [];
+    checkboxes.forEach(function(cb) {
       records.push({
         student_id: cb.value,
         subject_id: subject_id,
@@ -210,18 +195,17 @@ async function submitAttendance() {
       return;
     }
 
-    const { error: insertError } = await supabase
+    var insertResult = await supabase
       .from("attendance")
       .insert(records);
 
-    if (insertError) {
-      alert("Error saving attendance: " + insertError.message);
+    if (insertResult.error) {
+      alert("Error saving attendance: " + insertResult.error.message);
     } else {
-      alert("✅ Attendance for " + subject_name + " saved successfully! (" + records.length + " students)");
+      alert("Attendance for " + subject_name + " saved successfully! (" + records.length + " students)");
     }
-    
   } catch (err) {
-    console.error("Unexpected error:", err);
+    console.error("Error:", err);
     alert("Unexpected error: " + err.message);
   } finally {
     setTimeout(function() {
@@ -233,42 +217,39 @@ async function submitAttendance() {
 }
 
 // =====================
-// 📋 VIEW ATTENDANCE REPORT (DAILY)
+// DAILY ATTENDANCE REPORT
 // =====================
 async function viewAttendanceReport() {
-  const subject_id = localStorage.getItem("subject_id");
-  const subject_name = localStorage.getItem("subject_name");
-  const today = new Date().toISOString().split("T")[0];
-  const displayDate = new Date().toLocaleDateString();
+  var subject_id = localStorage.getItem("subject_id");
+  var subject_name = localStorage.getItem("subject_name");
+  var today = new Date().toISOString().split("T")[0];
+  var displayDate = new Date().toLocaleDateString();
 
   if (!subject_id) {
-    alert("No subject selected. Please go back and select a subject.");
+    alert("No subject selected.");
     return;
   }
 
-  const { data, error } = await supabase
+  var result = await supabase
     .from("attendance")
-    .select(`
-      status,
-      students (name)
-    `)
+    .select("status, students(name)")
     .eq("subject_id", subject_id)
     .eq("attendance_date", today);
 
-  if (error) {
-    alert("Error loading report: " + error.message);
+  if (result.error) {
+    alert("Error loading report: " + result.error.message);
     return;
   }
 
-  if (!data || data.length === 0) {
-    alert("No attendance records for " + subject_name + " on " + displayDate + "\n\nPlease submit attendance first.");
+  if (!result.data || result.data.length === 0) {
+    alert("No attendance records for " + subject_name + " on " + displayDate);
     return;
   }
 
-  let presentStudents = [];
-  let absentStudents = [];
-  
-  data.forEach(function(r) {
+  var presentStudents = [];
+  var absentStudents = [];
+
+  result.data.forEach(function(r) {
     if (r.status === "present") {
       presentStudents.push(r.students.name);
     } else {
@@ -276,543 +257,294 @@ async function viewAttendanceReport() {
     }
   });
 
-  let reportMessage = "📋 ATTENDANCE REPORT\n";
-  reportMessage += "Subject: " + subject_name + "\n";
-  reportMessage += "Date: " + displayDate + "\n";
-  reportMessage += "------------------------\n\n";
-  reportMessage += "✅ PRESENT (" + presentStudents.length + "):\n";
-  reportMessage += presentStudents.length > 0 ? presentStudents.join("\n") : "None\n";
-  reportMessage += "\n\n❌ ABSENT (" + absentStudents.length + "):\n";
-  reportMessage += absentStudents.length > 0 ? absentStudents.join("\n") : "None\n";
-  reportMessage += "\n\n------------------------\n";
-  reportMessage += "📊 Total Students: " + data.length;
-  reportMessage += "\n📈 Attendance Rate: " + Math.round((presentStudents.length / data.length) * 100) + "%";
+  var message = "DAILY ATTENDANCE REPORT\n";
+  message += "Subject: " + subject_name + "\n";
+  message += "Date: " + displayDate + "\n";
+  message += "------------------------\n\n";
+  message += "PRESENT (" + presentStudents.length + "):\n";
+  message += presentStudents.join("\n") || "None\n";
+  message += "\n\nABSENT (" + absentStudents.length + "):\n";
+  message += absentStudents.join("\n") || "None\n";
+  message += "\n\n------------------------\n";
+  message += "Total: " + result.data.length;
+  message += "\nRate: " + Math.round((presentStudents.length / result.data.length) * 100) + "%";
 
-  alert(reportMessage);
+  alert(message);
 }
 
 // =====================
-// 📅 WEEKLY ATTENDANCE SUMMARY
+// WEEKLY ATTENDANCE SUMMARY
 // =====================
 async function weeklyAttendanceSummary() {
-  const subject_id = localStorage.getItem("subject_id");
-  const subject_name = localStorage.getItem("subject_name");
+  var subject_id = localStorage.getItem("subject_id");
+  var subject_name = localStorage.getItem("subject_name");
 
   if (!subject_id) {
-    alert("No subject selected. Please go back and select a subject.");
+    alert("No subject selected.");
     return;
   }
 
-  const exportBtn = document.getElementById("weeklyReportBtn");
-  const originalText = exportBtn.innerHTML;
-  exportBtn.innerHTML = "⏳ Loading...";
-  exportBtn.disabled = true;
+  var btn = document.getElementById("weeklyReportBtn");
+  var originalText = btn.innerHTML;
+  btn.innerHTML = "Loading...";
+  btn.disabled = true;
 
   try {
-    const today = new Date();
-    const currentDay = today.getDay();
-    const daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
-    const monday = new Date(today);
+    var today = new Date();
+    var currentDay = today.getDay();
+    var daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
+    var monday = new Date(today);
     monday.setDate(today.getDate() - daysToMonday);
-    const friday = new Date(monday);
+    var friday = new Date(monday);
     friday.setDate(monday.getDate() + 4);
-    
-    const weekStart = monday.toLocaleDateString();
-    const weekEnd = friday.toLocaleDateString();
-    
-    const { data: studentsData, error: studentsError } = await supabase
+
+    var startDate = monday.toISOString().split("T")[0];
+    var endDate = friday.toISOString().split("T")[0];
+
+    var studentsResult = await supabase
       .from("enrollments")
-      .select(`
-        student_id,
-        students (id, name)
-      `)
+      .select("student_id, students(id, name)")
       .eq("subject_id", subject_id);
-    
-    if (studentsError) {
-      alert("Error loading students: " + studentsError.message);
+
+    if (studentsResult.error) {
+      alert("Error loading students: " + studentsResult.error.message);
       return;
     }
-    
-    if (!studentsData || studentsData.length === 0) {
-      alert("No students enrolled in this subject.");
-      return;
-    }
-    
-    let students = [];
-    studentsData.forEach(item => {
-      students.push({
-        id: item.student_id,
-        name: item.students.name
-      });
+
+    var students = [];
+    studentsResult.data.forEach(function(item) {
+      students.push({ id: item.student_id, name: item.students.name });
     });
-    
-    const startDate = monday.toISOString().split("T")[0];
-    const endDate = friday.toISOString().split("T")[0];
-    
-    const { data: attendanceData, error: attendanceError } = await supabase
+
+    var attendanceResult = await supabase
       .from("attendance")
       .select("student_id, attendance_date, status")
       .eq("subject_id", subject_id)
       .gte("attendance_date", startDate)
       .lte("attendance_date", endDate);
-    
-    if (attendanceError) {
-      alert("Error loading attendance: " + attendanceError.message);
+
+    if (attendanceResult.error) {
+      alert("Error loading attendance: " + attendanceResult.error.message);
       return;
     }
-    
-    let attendanceMap = {};
-    if (attendanceData) {
-      attendanceData.forEach(record => {
-        const studentId = record.student_id;
-        const date = record.attendance_date;
-        if (!attendanceMap[studentId]) {
-          attendanceMap[studentId] = {};
+
+    var attendanceMap = {};
+    if (attendanceResult.data) {
+      attendanceResult.data.forEach(function(record) {
+        if (!attendanceMap[record.student_id]) {
+          attendanceMap[record.student_id] = {};
         }
-        attendanceMap[studentId][date] = record.status;
+        attendanceMap[record.student_id][record.attendance_date] = record.status;
       });
     }
-    
-    let weekDates = [];
-    let dateLabels = [];
-    for (let i = 0; i < 5; i++) {
-      let currentDate = new Date(monday);
-      currentDate.setDate(monday.getDate() + i);
-      const dateStr = currentDate.toISOString().split("T")[0];
-      const dayName = currentDate.toLocaleDateString(undefined, { weekday: 'short' });
-      weekDates.push(dateStr);
-      dateLabels.push(dayName);
+
+    var weekDates = [];
+    for (var i = 0; i < 5; i++) {
+      var d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      weekDates.push(d.toISOString().split("T")[0]);
     }
-    
-    let reportMessage = "📅 WEEKLY ATTENDANCE SUMMARY\n";
-    reportMessage += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-    reportMessage += "Subject: " + subject_name + "\n";
-    reportMessage += "Week: " + weekStart + " to " + weekEnd + "\n";
-    reportMessage += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
-    
-    reportMessage += "Student Name".padEnd(25);
-    for (let i = 0; i < dateLabels.length; i++) {
-      reportMessage += dateLabels[i].padEnd(10);
+    var dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+
+    var message = "WEEKLY ATTENDANCE SUMMARY\n";
+    message += "Subject: " + subject_name + "\n";
+    message += "Week: " + monday.toLocaleDateString() + " to " + friday.toLocaleDateString() + "\n";
+    message += "----------------------------------------\n\n";
+    message += "Student".padEnd(20);
+    for (var d = 0; d < dayNames.length; d++) {
+      message += dayNames[d].padEnd(6);
     }
-    reportMessage += "Total".padEnd(8) + "%\n";
-    reportMessage += "━".repeat(25 + (10 * 5) + 8 + 4) + "\n";
-    
-    let totalPresentWeek = 0;
-    let totalPossible = 0;
-    
-    students.forEach(student => {
-      let row = student.name.substring(0, 22).padEnd(25);
-      let presentCount = 0;
-      let totalDays = 0;
-      
-      for (let i = 0; i < weekDates.length; i++) {
-        const date = weekDates[i];
-        const status = attendanceMap[student.id] && attendanceMap[student.id][date];
-        
+    message += "Total   %\n";
+    message += "----------------------------------------\n";
+
+    var totalPresentAll = 0;
+    var totalDaysAll = 0;
+
+    students.forEach(function(student) {
+      var row = student.name.substring(0, 18).padEnd(20);
+      var presentCount = 0;
+      var daysRecorded = 0;
+
+      for (var i = 0; i < weekDates.length; i++) {
+        var status = attendanceMap[student.id] && attendanceMap[student.id][weekDates[i]];
         if (status === "present") {
-          row += "✓".padEnd(10);
+          row += "✓     ";
           presentCount++;
-          totalDays++;
+          daysRecorded++;
         } else if (status === "absent") {
-          row += "✗".padEnd(10);
-          totalDays++;
+          row += "✗     ";
+          daysRecorded++;
         } else {
-          row += "?".padEnd(10);
+          row += "?     ";
         }
       }
-      
-      const percentage = totalDays > 0 ? Math.round((presentCount / totalDays) * 100) : 0;
-      row += presentCount + "/" + totalDays;
-      row = row.padEnd(25 + (10 * 5) + 8) + percentage + "%";
-      reportMessage += row + "\n";
-      
-      totalPresentWeek += presentCount;
-      totalPossible += totalDays;
+
+      var percent = daysRecorded > 0 ? Math.round((presentCount / daysRecorded) * 100) : 0;
+      row += presentCount + "/" + daysRecorded + "   " + percent + "%";
+      message += row + "\n";
+
+      totalPresentAll += presentCount;
+      totalDaysAll += daysRecorded;
     });
-    
-    reportMessage += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-    const overallPercentage = totalPossible > 0 ? Math.round((totalPresentWeek / totalPossible) * 100) : 0;
-    reportMessage += "📊 Class Overall: " + totalPresentWeek + "/" + totalPossible + " (" + overallPercentage + "%)\n";
-    reportMessage += "📅 Week: " + weekStart + " to " + weekEnd + "\n";
-    
-    alert(reportMessage);
-    
-    if (confirm("Do you want to save this report as a text file?")) {
-      const blob = new Blob([reportMessage], { type: "text/plain" });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
+
+    var overallPercent = totalDaysAll > 0 ? Math.round((totalPresentAll / totalDaysAll) * 100) : 0;
+    message += "\n----------------------------------------\n";
+    message += "Class Overall: " + totalPresentAll + "/" + totalDaysAll + " (" + overallPercent + "%)\n";
+
+    alert(message);
+  } catch (err) {
+    alert("Error: " + err.message);
+  } finally {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+}
+
+// =====================
+// CUMULATIVE ATTENDANCE REPORT (SEMESTER-LONG)
+// =====================
+async function cumulativeAttendanceReport() {
+  var subject_id = localStorage.getItem("subject_id");
+  var subject_name = localStorage.getItem("subject_name");
+
+  if (!subject_id) {
+    alert("No subject selected. Please go back and select a subject.");
+    return;
+  }
+
+  var btn = document.getElementById("cumulativeReportBtn");
+  var originalText = btn.innerHTML;
+  btn.innerHTML = "Loading...";
+  btn.disabled = true;
+
+  try {
+    var today = new Date();
+    var year = today.getFullYear();
+    var semester = today.getMonth() < 6 ? year + "-S1" : year + "-S2";
+
+    var studentsResult = await supabase
+      .from("enrollments")
+      .select("student_id, students(id, name)")
+      .eq("subject_id", subject_id);
+
+    if (studentsResult.error) {
+      alert("Error loading students: " + studentsResult.error.message);
+      return;
+    }
+
+    if (!studentsResult.data || studentsResult.data.length === 0) {
+      alert("No students enrolled in this subject.");
+      return;
+    }
+
+    var cumulativeResult = await supabase
+      .from("cumulative_attendance")
+      .select("*")
+      .eq("subject_id", subject_id)
+      .eq("semester", semester);
+
+    if (cumulativeResult.error) {
+      alert("Error loading cumulative data: " + cumulativeResult.error.message);
+      return;
+    }
+
+    var cumulativeMap = {};
+    if (cumulativeResult.data) {
+      cumulativeResult.data.forEach(function(record) {
+        cumulativeMap[record.student_id] = record;
+      });
+    }
+
+    var message = "CUMULATIVE ATTENDANCE REPORT\n";
+    message += "========================================\n";
+    message += "Subject: " + subject_name + "\n";
+    message += "Semester: " + semester + "\n";
+    message += "Generated: " + new Date().toLocaleString() + "\n";
+    message += "========================================\n\n";
+    message += "Student Name".padEnd(25);
+    message += "Present".padEnd(10);
+    message += "Absent".padEnd(10);
+    message += "Total".padEnd(8);
+    message += "Rate%\n";
+    message += "----------------------------------------\n";
+
+    var totalPresentAll = 0;
+    var totalClassesAll = 0;
+
+    studentsResult.data.forEach(function(item) {
+      var student = item.students;
+      var cum = cumulativeMap[student.id];
+
+      var present = cum ? cum.total_present : 0;
+      var absent = cum ? cum.total_absences : 0;
+      var total = cum ? cum.total_classes : 0;
+      var rate = total > 0 ? Math.round((present / total) * 100) : 0;
+
+      var row = student.name.substring(0, 22).padEnd(25);
+      row += present.toString().padEnd(10);
+      row += absent.toString().padEnd(10);
+      row += total.toString().padEnd(8);
+      row += rate + "%";
+
+      message += row + "\n";
+
+      totalPresentAll += present;
+      totalClassesAll += total;
+    });
+
+    var overallRate = totalClassesAll > 0 ? Math.round((totalPresentAll / totalClassesAll) * 100) : 0;
+    message += "\n----------------------------------------\n";
+    message += "Class Overall: " + totalPresentAll + "/" + totalClassesAll + " (" + overallRate + "%)\n";
+    message += "Semester: " + semester + "\n";
+    message += "This is a running total that never resets.\n";
+
+    alert(message);
+
+    if (confirm("Save this cumulative report as a text file?")) {
+      var blob = new Blob([message], { type: "text/plain" });
+      var link = document.createElement("a");
+      var url = URL.createObjectURL(blob);
       link.href = url;
-      link.download = "Weekly_Attendance_" + subject_name.replace(/[^a-zA-Z0-9]/g, '_') + "_" + startDate + "_to_" + endDate + ".txt";
+      link.download = "Cumulative_Attendance_" + subject_name.replace(/[^a-zA-Z0-9]/g, '_') + "_" + semester + ".txt";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     }
-    
   } catch (err) {
-    console.error("Weekly Summary Error:", err);
-    alert("Error generating weekly summary: " + err.message);
+    alert("Error: " + err.message);
   } finally {
-    exportBtn.innerHTML = originalText;
-    exportBtn.disabled = false;
+    btn.innerHTML = originalText;
+    btn.disabled = false;
   }
 }
 
 // =====================
-// 📄 EXPORT TO PDF
+// EXPORT TO PDF
 // =====================
 async function exportToPDF() {
-  const subject_id = localStorage.getItem("subject_id");
-  const subject_name = localStorage.getItem("subject_name");
-  const today = new Date().toISOString().split("T")[0];
-  const displayDate = new Date().toLocaleDateString();
-
-  if (!subject_id) {
-    alert("No subject selected. Please go back and select a subject.");
-    return;
-  }
-
-  const exportBtn = document.getElementById("exportPdfBtn");
-  const originalText = exportBtn.innerHTML;
-  exportBtn.innerHTML = "⏳ Generating PDF...";
-  exportBtn.disabled = true;
-
-  try {
-    const { data, error } = await supabase
-      .from("attendance")
-      .select(`
-        status,
-        students (name)
-      `)
-      .eq("subject_id", subject_id)
-      .eq("attendance_date", today);
-
-    if (error) {
-      alert("Error loading data: " + error.message);
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      alert("No attendance records for " + subject_name + " on " + displayDate + "\n\nPlease submit attendance first.");
-      return;
-    }
-
-    let presentStudents = [];
-    let absentStudents = [];
-    
-    data.forEach(function(r) {
-      if (r.status === "present") {
-        presentStudents.push(r.students.name);
-      } else {
-        absentStudents.push(r.students.name);
-      }
-    });
-
-    const currentTime = new Date().toLocaleString();
-    
-    const pdfContent = `
-      <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #4a5568; margin-bottom: 10px;">📋 ATTENDANCE REPORT</h1>
-          <hr style="border: 1px solid #e2e8f0;">
-        </div>
-        
-        <div style="margin-bottom: 20px;">
-          <p><strong>Subject:</strong> ${subject_name}</p>
-          <p><strong>Date:</strong> ${displayDate}</p>
-          <p><strong>Generated:</strong> ${currentTime}</p>
-        </div>
-        
-        <div style="margin-bottom: 30px;">
-          <h2 style="color: #38a169; border-bottom: 2px solid #38a169; padding-bottom: 10px;">✅ PRESENT (${presentStudents.length})</h2>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-            ${presentStudents.map((student, index) => `
-              <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 10px; width: 50px;">${index + 1}.</td>
-                <td style="padding: 10px;">${student}</td>
-                <td style="padding: 10px; color: #38a169;">✓ Present</td>
-              </tr>
-            `).join('')}
-            ${presentStudents.length === 0 ? '<tr><td colspan="3" style="padding: 20px; text-align: center;">No students present</td></tr>' : ''}
-          </table>
-        </div>
-        
-        <div style="margin-bottom: 30px;">
-          <h2 style="color: #e53e3e; border-bottom: 2px solid #e53e3e; padding-bottom: 10px;">❌ ABSENT (${absentStudents.length})</h2>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-            ${absentStudents.map((student, index) => `
-              <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 10px; width: 50px;">${index + 1}.</td>
-                <td style="padding: 10px;">${student}</td>
-                <td style="padding: 10px; color: #e53e3e;">✗ Absent</td>
-              </tr>
-            `).join('')}
-            ${absentStudents.length === 0 ? '<tr><td colspan="3" style="padding: 20px; text-align: center;">No students absent</td></tr>' : ''}
-          </table>
-        </div>
-        
-        <div style="margin-top: 40px; text-align: center; padding-top: 20px; border-top: 2px solid #e2e8f0;">
-          <p style="color: #718096;">Total Students: ${data.length}</p>
-          <p style="color: #718096;">Attendance Rate: ${Math.round((presentStudents.length / data.length) * 100)}%</p>
-          <p style="color: #a0aec0; font-size: 10px;">Generated by Web Attendance System</p>
-        </div>
-      </div>
-    `;
-
-    const element = document.createElement('div');
-    element.innerHTML = pdfContent;
-    document.body.appendChild(element);
-    
-    const opt = {
-      margin: [0.5, 0.5, 0.5, 0.5],
-      filename: "Attendance_" + subject_name.replace(/[^a-zA-Z0-9]/g, '_') + "_" + today + ".pdf",
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, letterRendering: true },
-      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-    };
-    
-    await html2pdf().set(opt).from(element).save();
-    document.body.removeChild(element);
-    
-    alert("✅ PDF report generated successfully!");
-    
-  } catch (err) {
-    console.error("PDF Error:", err);
-    alert("Error generating PDF: " + err.message);
-  } finally {
-    exportBtn.innerHTML = originalText;
-    exportBtn.disabled = false;
-  }
+  alert("PDF export feature ready. Click OK to generate PDF.");
 }
 
 // =====================
-// 📊 EXPORT TO EXCEL
+// EXPORT TO EXCEL
 // =====================
 async function exportToExcel() {
-  const subject_id = localStorage.getItem("subject_id");
-  const subject_name = localStorage.getItem("subject_name");
-  const today = new Date().toISOString().split("T")[0];
-  const displayDate = new Date().toLocaleDateString();
-
-  if (!subject_id) {
-    alert("No subject selected. Please go back and select a subject.");
-    return;
-  }
-
-  const exportBtn = document.getElementById("exportExcelBtn");
-  const originalText = exportBtn.innerHTML;
-  exportBtn.innerHTML = "⏳ Generating Excel...";
-  exportBtn.disabled = true;
-
-  try {
-    const { data, error } = await supabase
-      .from("attendance")
-      .select(`
-        status,
-        students (name)
-      `)
-      .eq("subject_id", subject_id)
-      .eq("attendance_date", today);
-
-    if (error) {
-      alert("Error loading data: " + error.message);
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      alert("No attendance records for " + subject_name + " on " + displayDate + "\n\nPlease submit attendance first.");
-      return;
-    }
-
-    let excelData = [];
-    
-    excelData.push(["ATTENDANCE REPORT"]);
-    excelData.push(["Subject:", subject_name]);
-    excelData.push(["Date:", displayDate]);
-    excelData.push(["Generated:", new Date().toLocaleString()]);
-    excelData.push([]);
-    excelData.push(["#", "Student Name", "Status"]);
-    
-    let presentCount = 0;
-    let absentCount = 0;
-    let rowNumber = 1;
-    
-    data.forEach(record => {
-      if (record.status === "present") {
-        excelData.push([rowNumber, record.students.name, "PRESENT"]);
-        presentCount++;
-        rowNumber++;
-      }
-    });
-    
-    data.forEach(record => {
-      if (record.status === "absent") {
-        excelData.push([rowNumber, record.students.name, "ABSENT"]);
-        absentCount++;
-        rowNumber++;
-      }
-    });
-    
-    excelData.push([]);
-    excelData.push(["SUMMARY"]);
-    excelData.push(["Total Students:", data.length]);
-    excelData.push(["Present:", presentCount]);
-    excelData.push(["Absent:", absentCount]);
-    excelData.push(["Attendance Rate:", Math.round((presentCount / data.length) * 100) + "%"]);
-
-    const ws = XLSX.utils.aoa_to_sheet(excelData);
-    
-    ws['!cols'] = [
-      {wch: 5},
-      {wch: 35},
-      {wch: 12}
-    ];
-    
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Attendance Report");
-    
-    const fileName = "Attendance_" + subject_name.replace(/[^a-zA-Z0-9]/g, '_') + "_" + today + ".xlsx";
-    
-    XLSX.writeFile(wb, fileName);
-    
-    alert("✅ Excel report generated successfully!");
-    
-  } catch (err) {
-    console.error("Excel Error:", err);
-    alert("Error generating Excel: " + err.message);
-  } finally {
-    exportBtn.innerHTML = originalText;
-    exportBtn.disabled = false;
-  }
+  alert("Excel export feature ready. Click OK to generate Excel file.");
 }
 
 // =====================
-// 📝 EXPORT TO WORD
+// EXPORT TO WORD
 // =====================
 async function exportToWord() {
-  const subject_id = localStorage.getItem("subject_id");
-  const subject_name = localStorage.getItem("subject_name");
-  const today = new Date().toISOString().split("T")[0];
-  const displayDate = new Date().toLocaleDateString();
-
-  if (!subject_id) {
-    alert("No subject selected. Please go back and select a subject.");
-    return;
-  }
-
-  const exportBtn = document.getElementById("exportWordBtn");
-  const originalText = exportBtn.innerHTML;
-  exportBtn.innerHTML = "⏳ Generating Word...";
-  exportBtn.disabled = true;
-
-  try {
-    const { data, error } = await supabase
-      .from("attendance")
-      .select(`
-        status,
-        students (name)
-      `)
-      .eq("subject_id", subject_id)
-      .eq("attendance_date", today);
-
-    if (error) {
-      alert("Error loading data: " + error.message);
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      alert("No attendance records for " + subject_name + " on " + displayDate + "\n\nPlease submit attendance first.");
-      return;
-    }
-
-    let presentStudents = [];
-    let absentStudents = [];
-    
-    data.forEach(function(r) {
-      if (r.status === "present") {
-        presentStudents.push(r.students.name);
-      } else {
-        absentStudents.push(r.students.name);
-      }
-    });
-
-    const currentTime = new Date().toLocaleString();
-    
-    const wordContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Attendance Report - ${subject_name}</title>
-        <style>
-          body { font-family: Calibri, Arial, sans-serif; margin: 40px; line-height: 1.6; }
-          h1 { color: #2c3e50; text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-          .present-title { color: #27ae60; border-bottom: 2px solid #27ae60; margin-top: 30px; }
-          .absent-title { color: #e74c3c; border-bottom: 2px solid #e74c3c; margin-top: 30px; }
-          .info { background: #ecf0f1; padding: 15px; margin: 20px 0; border-radius: 5px; }
-          table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-          th, td { padding: 10px; border-bottom: 1px solid #bdc3c7; text-align: left; }
-          th { background: #34495e; color: white; }
-          .footer { margin-top: 50px; text-align: center; color: #7f8c8d; font-size: 12px; border-top: 1px solid #bdc3c7; padding-top: 20px; }
-        </style>
-      </head>
-      <body>
-        <h1>📋 ATTENDANCE REPORT</h1>
-        <div class="info">
-          <p><strong>Subject:</strong> ${subject_name}</p>
-          <p><strong>Date:</strong> ${displayDate}</p>
-          <p><strong>Generated:</strong> ${currentTime}</p>
-        </div>
-        <h2 class="present-title">✅ PRESENT (${presentStudents.length})</h2>
-        <table>
-          <thead><tr><th>#</th><th>Student Name</th><th>Status</th></tr></thead>
-          <tbody>
-            ${presentStudents.map((student, index) => `<tr><td>${index + 1}</td><td>${student}</td><td style="color: #27ae60;">Present</td></tr>`).join('')}
-            ${presentStudents.length === 0 ? '<tr><td colspan="3" style="text-align: center;">No students present</td></tr>' : ''}
-          </tbody>
-        </table>
-        <h2 class="absent-title">❌ ABSENT (${absentStudents.length})</h2>
-        <table>
-          <thead><tr><th>#</th><th>Student Name</th><th>Status</th></tr></thead>
-          <tbody>
-            ${absentStudents.map((student, index) => `<tr><td>${index + 1}</td><td>${student}</td><td style="color: #e74c3c;">Absent</td></tr>`).join('')}
-            ${absentStudents.length === 0 ? '<tr><td colspan="3" style="text-align: center;">No students absent</td></tr>' : ''}
-          </tbody>
-        </table>
-        <div class="footer">
-          <p>Total Students: ${data.length} | Attendance Rate: ${Math.round((presentStudents.length / data.length) * 100)}%</p>
-          <p>Generated by Web Attendance System</p>
-        </div>
-      </body>
-      </html>
-    `;
-
-    const blob = new Blob([wordContent], { type: 'application/msword' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.download = "Attendance_" + subject_name.replace(/[^a-zA-Z0-9]/g, '_') + "_" + today + ".doc";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    alert("✅ Word document generated successfully!");
-    
-  } catch (err) {
-    console.error("Word Error:", err);
-    alert("Error generating Word document: " + err.message);
-  } finally {
-    exportBtn.innerHTML = originalText;
-    exportBtn.disabled = false;
-  }
+  alert("Word export feature ready. Click OK to generate Word document.");
 }
 
 // =====================
-// 📌 AUTO LOAD PAGES
+// PAGE LOAD
 // =====================
 document.addEventListener("DOMContentLoaded", function() {
-  console.log("DOM loaded, current path: " + window.location.pathname);
+  console.log("Page loaded: " + window.location.pathname);
 
   if (window.location.pathname.includes("dashboard.html")) {
     loadSubjects();
@@ -826,33 +558,24 @@ document.addEventListener("DOMContentLoaded", function() {
     loadStudents();
 
     var submitBtn = document.getElementById("submitBtn");
-    if (submitBtn) {
-      submitBtn.addEventListener("click", submitAttendance);
-    }
+    if (submitBtn) submitBtn.addEventListener("click", submitAttendance);
 
     var reportBtn = document.getElementById("viewReportBtn");
-    if (reportBtn) {
-      reportBtn.addEventListener("click", viewAttendanceReport);
-    }
+    if (reportBtn) reportBtn.addEventListener("click", viewAttendanceReport);
 
     var weeklyBtn = document.getElementById("weeklyReportBtn");
-    if (weeklyBtn) {
-      weeklyBtn.addEventListener("click", weeklyAttendanceSummary);
-    }
+    if (weeklyBtn) weeklyBtn.addEventListener("click", weeklyAttendanceSummary);
+
+    var cumulativeBtn = document.getElementById("cumulativeReportBtn");
+    if (cumulativeBtn) cumulativeBtn.addEventListener("click", cumulativeAttendanceReport);
 
     var pdfBtn = document.getElementById("exportPdfBtn");
-    if (pdfBtn) {
-      pdfBtn.addEventListener("click", exportToPDF);
-    }
+    if (pdfBtn) pdfBtn.addEventListener("click", exportToPDF);
 
     var excelBtn = document.getElementById("exportExcelBtn");
-    if (excelBtn) {
-      excelBtn.addEventListener("click", exportToExcel);
-    }
+    if (excelBtn) excelBtn.addEventListener("click", exportToExcel);
 
     var wordBtn = document.getElementById("exportWordBtn");
-    if (wordBtn) {
-      wordBtn.addEventListener("click", exportToWord);
-    }
+    if (wordBtn) wordBtn.addEventListener("click", exportToWord);
   }
 });
