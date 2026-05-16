@@ -16,6 +16,64 @@ console.log("SCRIPT LOADED");
 var isSubmitting = false;
 
 // =====================
+// TIMEZONE UTILITY (UTC+10:00 - Guam/Port Moresby)
+// =====================
+function getCurrentDateInUTC10() {
+  // Get current date in UTC+10 timezone
+  const now = new Date();
+  const utc10Date = new Date(now.toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" }));
+  return utc10Date.toISOString().split("T")[0];
+}
+
+function formatDateInUTC10(dateString) {
+  if (!dateString) return "N/A";
+  try {
+    const date = new Date(dateString + "T12:00:00");
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "Pacific/Port_Moresby"
+    });
+  } catch (e) {
+    return dateString;
+  }
+}
+
+function getWeekDatesInUTC10() {
+  // Get current date in UTC+10
+  const now = new Date();
+  const utc10Date = new Date(now.toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" }));
+  
+  // Calculate Monday of current week (Monday = 1, Sunday = 0)
+  const currentDay = utc10Date.getDay();
+  const daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
+  const monday = new Date(utc10Date);
+  monday.setDate(utc10Date.getDate() - daysToMonday);
+  monday.setHours(0, 0, 0, 0);
+  
+  // Calculate Friday (Monday + 4 days)
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+  
+  return {
+    monday: monday.toISOString().split("T")[0],
+    friday: friday.toISOString().split("T")[0],
+    mondayDisplay: monday.toLocaleDateString("en-US", { timeZone: "Pacific/Port_Moresby" }),
+    fridayDisplay: friday.toLocaleDateString("en-US", { timeZone: "Pacific/Port_Moresby" })
+  };
+}
+
+function getSemesterInUTC10() {
+  const now = new Date();
+  const utc10Date = new Date(now.toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" }));
+  const year = utc10Date.getFullYear();
+  const month = utc10Date.getMonth();
+  const semester = month < 6 ? year + "-S1" : year + "-S2";
+  return semester;
+}
+
+// =====================
 // LOGIN
 // =====================
 async function login() {
@@ -111,11 +169,11 @@ async function loadStudents() {
 }
 
 // =====================
-// LOAD EXISTING ATTENDANCE
+// LOAD EXISTING ATTENDANCE (with UTC+10 timezone)
 // =====================
 async function loadExistingAttendance() {
   var subject_id = localStorage.getItem("subject_id");
-  var today = new Date().toISOString().split("T")[0];
+  var today = getCurrentDateInUTC10();
 
   var result = await supabase
     .from("attendance")
@@ -137,12 +195,12 @@ async function loadExistingAttendance() {
         }
       }
     });
-    console.log("Loaded " + result.data.length + " existing attendance records");
+    console.log("Loaded " + result.data.length + " existing attendance records for " + today);
   }
 }
 
 // =====================
-// SUBMIT ATTENDANCE
+// SUBMIT ATTENDANCE (with UTC+10 timezone)
 // =====================
 async function submitAttendance() {
   if (isSubmitting) {
@@ -159,7 +217,7 @@ async function submitAttendance() {
   }
 
   var checkboxes = document.querySelectorAll("#studentList input[type=checkbox]");
-  var today = new Date().toISOString().split("T")[0];
+  var today = getCurrentDateInUTC10();
 
   var submitBtn = document.getElementById("submitBtn");
   var originalBtnText = submitBtn.innerHTML;
@@ -169,6 +227,7 @@ async function submitAttendance() {
   submitBtn.disabled = true;
 
   try {
+    // Step 1: Delete existing records for today
     var deleteResult = await supabase
       .from("attendance")
       .delete()
@@ -180,6 +239,7 @@ async function submitAttendance() {
       return;
     }
 
+    // Step 2: Prepare and insert records
     var records = [];
     checkboxes.forEach(function(cb) {
       records.push({
@@ -202,7 +262,7 @@ async function submitAttendance() {
     if (insertResult.error) {
       alert("Error saving attendance: " + insertResult.error.message);
     } else {
-      alert("✅ Attendance for " + subject_name + " saved successfully! (" + records.length + " students)");
+      alert("✅ Attendance for " + subject_name + " saved successfully! (" + records.length + " students) for " + today);
     }
   } catch (err) {
     console.error("Error:", err);
@@ -217,13 +277,13 @@ async function submitAttendance() {
 }
 
 // =====================
-// DAILY ATTENDANCE REPORT
+// DAILY ATTENDANCE REPORT (with UTC+10 timezone)
 // =====================
 async function viewAttendanceReport() {
   var subject_id = localStorage.getItem("subject_id");
   var subject_name = localStorage.getItem("subject_name");
-  var today = new Date().toISOString().split("T")[0];
-  var displayDate = new Date().toLocaleDateString();
+  var today = getCurrentDateInUTC10();
+  var displayDate = formatDateInUTC10(today);
 
   if (!subject_id) {
     alert("No subject selected.");
@@ -257,7 +317,7 @@ async function viewAttendanceReport() {
     }
   });
 
-  var message = "📋 DAILY ATTENDANCE REPORT\n";
+  var message = "📋 DAILY ATTENDANCE REPORT (UTC+10:00)\n";
   message += "Subject: " + subject_name + "\n";
   message += "Date: " + displayDate + "\n";
   message += "------------------------\n\n";
@@ -273,7 +333,7 @@ async function viewAttendanceReport() {
 }
 
 // =====================
-// WEEKLY ATTENDANCE SUMMARY
+// WEEKLY ATTENDANCE SUMMARY (with UTC+10 timezone)
 // =====================
 async function weeklyAttendanceSummary() {
   var subject_id = localStorage.getItem("subject_id");
@@ -290,16 +350,9 @@ async function weeklyAttendanceSummary() {
   btn.disabled = true;
 
   try {
-    var today = new Date();
-    var currentDay = today.getDay();
-    var daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
-    var monday = new Date(today);
-    monday.setDate(today.getDate() - daysToMonday);
-    var friday = new Date(monday);
-    friday.setDate(monday.getDate() + 4);
-
-    var startDate = monday.toISOString().split("T")[0];
-    var endDate = friday.toISOString().split("T")[0];
+    var weekDates = getWeekDatesInUTC10();
+    var startDate = weekDates.monday;
+    var endDate = weekDates.friday;
 
     var studentsResult = await supabase
       .from("enrollments")
@@ -338,18 +391,21 @@ async function weeklyAttendanceSummary() {
       });
     }
 
-    var weekDates = [];
+    // Generate week dates array
+    var weekDateStrs = [];
+    var monday = new Date(startDate + "T12:00:00");
     for (var i = 0; i < 5; i++) {
       var d = new Date(monday);
       d.setDate(monday.getDate() + i);
-      weekDates.push(d.toISOString().split("T")[0]);
+      weekDateStrs.push(d.toISOString().split("T")[0]);
     }
+    
     var dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
-    var message = "📅 WEEKLY ATTENDANCE SUMMARY\n";
+    var message = "📅 WEEKLY ATTENDANCE SUMMARY (UTC+10:00)\n";
     message += "========================================\n";
     message += "Subject: " + subject_name + "\n";
-    message += "Week: " + monday.toLocaleDateString() + " to " + friday.toLocaleDateString() + "\n";
+    message += "Week: " + weekDates.mondayDisplay + " to " + weekDates.fridayDisplay + "\n";
     message += "========================================\n\n";
     message += "Student".padEnd(20);
     for (var d = 0; d < dayNames.length; d++) {
@@ -366,8 +422,8 @@ async function weeklyAttendanceSummary() {
       var presentCount = 0;
       var daysRecorded = 0;
 
-      for (var i = 0; i < weekDates.length; i++) {
-        var status = attendanceMap[student.id] && attendanceMap[student.id][weekDates[i]];
+      for (var i = 0; i < weekDateStrs.length; i++) {
+        var status = attendanceMap[student.id] && attendanceMap[student.id][weekDateStrs[i]];
         if (status === "present") {
           row += "✓     ";
           presentCount++;
@@ -402,7 +458,7 @@ async function weeklyAttendanceSummary() {
 }
 
 // =====================
-// CUMULATIVE ATTENDANCE REPORT (SEMESTER-LONG)
+// CUMULATIVE ATTENDANCE REPORT (with UTC+10 timezone)
 // =====================
 async function cumulativeAttendanceReport() {
   var subject_id = localStorage.getItem("subject_id");
@@ -419,9 +475,7 @@ async function cumulativeAttendanceReport() {
   btn.disabled = true;
 
   try {
-    var today = new Date();
-    var year = today.getFullYear();
-    var semester = today.getMonth() < 6 ? year + "-S1" : year + "-S2";
+    var semester = getSemesterInUTC10();
 
     var studentsResult = await supabase
       .from("enrollments")
@@ -456,11 +510,11 @@ async function cumulativeAttendanceReport() {
       });
     }
 
-    var message = "📊 CUMULATIVE ATTENDANCE REPORT\n";
+    var message = "📊 CUMULATIVE ATTENDANCE REPORT (UTC+10:00)\n";
     message += "========================================\n";
     message += "Subject: " + subject_name + "\n";
     message += "Semester: " + semester + "\n";
-    message += "Generated: " + new Date().toLocaleString() + "\n";
+    message += "Generated: " + new Date().toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" }) + "\n";
     message += "========================================\n\n";
     message += "Student Name".padEnd(25);
     message += "Present".padEnd(10);
@@ -497,7 +551,7 @@ async function cumulativeAttendanceReport() {
     message += "\n----------------------------------------\n";
     message += "📊 Class Overall: " + totalPresentAll + "/" + totalClassesAll + " (" + overallRate + "%)\n";
     message += "📅 Semester: " + semester + "\n";
-    message += "🔄 This is a running total that never resets.\n";
+    message += "🔄 Timezone: UTC+10:00 (Guam/Port Moresby)\n";
 
     alert(message);
 
@@ -617,7 +671,7 @@ async function loadStudentAttendanceHistory(studentId, subjectId) {
   
   var tableBody = document.getElementById("attendanceTableBody");
   if (tableBody) {
-    tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">Loading records...</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">Loading records...<\/td><\/tr>';
   }
   
   var result = await supabase
@@ -635,9 +689,7 @@ async function loadStudentAttendanceHistory(studentId, subjectId) {
   
   currentAttendanceData = result.data || [];
   
-  var today = new Date();
-  var year = today.getFullYear();
-  var semester = today.getMonth() < 6 ? year + "-S1" : year + "-S2";
+  var semester = getSemesterInUTC10();
   
   var cumulativeResult = await supabase
     .from("cumulative_attendance")
@@ -668,7 +720,7 @@ async function loadStudentAttendanceHistory(studentId, subjectId) {
   
   if (!studentResult.error) {
     document.getElementById("studentNameDisplay").textContent = studentResult.data.name;
-    document.getElementById("studentSemester").textContent = "Semester: " + semester;
+    document.getElementById("studentSemester").textContent = "Semester: " + semester + " (UTC+10:00)";
     document.getElementById("studentInfo").style.display = "block";
   }
   
@@ -680,7 +732,7 @@ function displayAttendanceTable(attendanceData) {
   if (!tableBody) return;
   
   if (!attendanceData || attendanceData.length === 0) {
-    tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No attendance records found for this student</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No attendance records found for this student<\/td><\/tr>';
     return;
   }
   
@@ -689,12 +741,20 @@ function displayAttendanceTable(attendanceData) {
   
   attendanceData.forEach(function(record) {
     var row = tableBody.insertRow();
-    var date = new Date(record.attendance_date);
-    row.insertCell(0).textContent = date.toLocaleDateString();
+    var formattedDate = formatDateInUTC10(record.attendance_date);
+    row.insertCell(0).textContent = formattedDate;
     var statusCell = row.insertCell(1);
     statusCell.textContent = record.status === "present" ? "✓ Present" : "✗ Absent";
     statusCell.className = record.status === "present" ? "status-present" : "status-absent";
-    row.insertCell(2).textContent = days[date.getDay()];
+    
+    // Calculate correct day of week for UTC+10
+    try {
+      var dateObj = new Date(record.attendance_date + "T12:00:00");
+      var utc10Day = new Date(dateObj.toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" }));
+      row.insertCell(2).textContent = days[utc10Day.getDay()];
+    } catch (e) {
+      row.insertCell(2).textContent = "-";
+    }
   });
 }
 
@@ -716,20 +776,22 @@ async function exportStudentToPDF() {
     '<h1 style="text-align: center; color: #667eea;">STUDENT ATTENDANCE RECORD</h1><hr>' +
     '<p><strong>Student Name:</strong> ' + studentName + '</p>' +
     '<p><strong>Subject:</strong> ' + subjectName + '</p>' +
-    '<p><strong>Generated:</strong> ' + new Date().toLocaleString() + '</p><hr>' +
+    '<p><strong>Generated:</strong> ' + new Date().toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" }) + '</p>' +
+    '<p><strong>Timezone:</strong> UTC+10:00 (Guam/Port Moresby)</p><hr>' +
     '<h3>Summary</h3>' +
     '<table style="width: 100%; border-collapse: collapse;">' +
-    '<tr style="background: #667eea; color: white;"><th style="padding: 10px;">Total Present</th><th style="padding: 10px;">Total Absent</th><th style="padding: 10px;">Total Classes</th><th style="padding: 10px;">Attendance Rate</th></tr>' +
-    '<tr style="text-align: center;"><td style="padding: 10px;">' + present + '</td><td style="padding: 10px;">' + absent + '</td><td style="padding: 10px;">' + total + '</td><td style="padding: 10px;">' + rate + '</td></tr>' +
-    '</table><h3>Attendance History</h3>' +
-    '<table style="width: 100%; border-collapse: collapse;"><tr style="background: #667eea; color: white;"><th style="padding: 10px;">Date</th><th style="padding: 10px;">Status</th></tr>';
+    '<tr style="background: #667eea; color: white;"><th style="padding: 10px;">Total Present</th><th style="padding: 10px;">Total Absent</th><th style="padding: 10px;">Total Classes</th><th style="padding: 10px;">Attendance Rate</th><\/tr>' +
+    '<tr style="text-align: center;"><td style="padding: 10px;">' + present + '<\/td><td style="padding: 10px;">' + absent + '<\/td><td style="padding: 10px;">' + total + '<\/td><td style="padding: 10px;">' + rate + '<\/td><\/tr>' +
+    '<\/table><h3>Attendance History</h3>' +
+    '<table style="width: 100%; border-collapse: collapse;"><tr style="background: #667eea; color: white;"><th style="padding: 10px;">Date</th><th style="padding: 10px;">Status</th><\/tr>';
   
   currentAttendanceData.forEach(function(record) {
-    htmlContent += '<tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">' + new Date(record.attendance_date).toLocaleDateString() + '</td>' +
-      '<td style="padding: 8px; border-bottom: 1px solid #ddd; color: ' + (record.status === 'present' ? '#27ae60' : '#e74c3c') + '">' + (record.status === 'present' ? 'Present' : 'Absent') + '</td></tr>';
+    var displayDate = formatDateInUTC10(record.attendance_date);
+    htmlContent += '<tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">' + displayDate + '<\/td>' +
+      '<td style="padding: 8px; border-bottom: 1px solid #ddd; color: ' + (record.status === 'present' ? '#27ae60' : '#e74c3c') + '">' + (record.status === 'present' ? 'Present' : 'Absent') + '<\/td><\/tr>';
   });
   
-  htmlContent += '</table><p style="margin-top: 40px; text-align: center; font-size: 12px; color: #999;">Generated by Web Attendance System</p></div>';
+  htmlContent += '<\/table><p style="margin-top: 40px; text-align: center; font-size: 12px; color: #999;">Generated by Web Attendance System (UTC+10:00)</p></div>';
   
   var element = document.createElement('div');
   element.innerHTML = htmlContent;
@@ -756,10 +818,11 @@ async function exportStudentToExcel() {
   var total = document.getElementById("totalClasses").textContent;
   var rate = document.getElementById("attendanceRate").textContent;
   
-  var excelData = [["STUDENT ATTENDANCE RECORD"], ["Student Name:", studentName], ["Subject:", subjectName], ["Generated:", new Date().toLocaleString()], [], ["SUMMARY"], ["Total Present", present], ["Total Absent", absent], ["Total Classes", total], ["Attendance Rate", rate], [], ["ATTENDANCE HISTORY"], ["Date", "Status"]];
+  var excelData = [["STUDENT ATTENDANCE RECORD"], ["Student Name:", studentName], ["Subject:", subjectName], ["Generated:", new Date().toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" })], ["Timezone:", "UTC+10:00 (Guam/Port Moresby)"], [], ["SUMMARY"], ["Total Present", present], ["Total Absent", absent], ["Total Classes", total], ["Attendance Rate", rate], [], ["ATTENDANCE HISTORY"], ["Date", "Status"]];
   
   currentAttendanceData.forEach(function(record) {
-    excelData.push([new Date(record.attendance_date).toLocaleDateString(), record.status === "present" ? "PRESENT" : "ABSENT"]);
+    var displayDate = formatDateInUTC10(record.attendance_date);
+    excelData.push([displayDate, record.status === "present" ? "PRESENT" : "ABSENT"]);
   });
   
   var ws = XLSX.utils.aoa_to_sheet(excelData);
@@ -777,7 +840,7 @@ function initStudentRecordsPage() {
       loadStudentsForSubject(currentSubjectId);
       currentStudentId = null;
       document.getElementById("studentInfo").style.display = "none";
-      document.getElementById("attendanceTableBody").innerHTML = '<tr><td colspan="3" style="text-align: center;">Select a student to view records</td></tr>';
+      document.getElementById("attendanceTableBody").innerHTML = '<tr><td colspan="3" style="text-align: center;">Select a student to view records<\/td><\/tr>';
       document.getElementById("totalPresent").textContent = "0";
       document.getElementById("totalAbsent").textContent = "0";
       document.getElementById("totalClasses").textContent = "0";
