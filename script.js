@@ -202,7 +202,7 @@ async function submitAttendance() {
     if (insertResult.error) {
       alert("Error saving attendance: " + insertResult.error.message);
     } else {
-      alert("Attendance for " + subject_name + " saved successfully! (" + records.length + " students)");
+      alert("✅ Attendance for " + subject_name + " saved successfully! (" + records.length + " students)");
     }
   } catch (err) {
     console.error("Error:", err);
@@ -257,17 +257,17 @@ async function viewAttendanceReport() {
     }
   });
 
-  var message = "DAILY ATTENDANCE REPORT\n";
+  var message = "📋 DAILY ATTENDANCE REPORT\n";
   message += "Subject: " + subject_name + "\n";
   message += "Date: " + displayDate + "\n";
   message += "------------------------\n\n";
-  message += "PRESENT (" + presentStudents.length + "):\n";
+  message += "✅ PRESENT (" + presentStudents.length + "):\n";
   message += presentStudents.join("\n") || "None\n";
-  message += "\n\nABSENT (" + absentStudents.length + "):\n";
+  message += "\n\n❌ ABSENT (" + absentStudents.length + "):\n";
   message += absentStudents.join("\n") || "None\n";
   message += "\n\n------------------------\n";
-  message += "Total: " + result.data.length;
-  message += "\nRate: " + Math.round((presentStudents.length / result.data.length) * 100) + "%";
+  message += "📊 Total: " + result.data.length;
+  message += "\n📈 Rate: " + Math.round((presentStudents.length / result.data.length) * 100) + "%";
 
   alert(message);
 }
@@ -346,10 +346,11 @@ async function weeklyAttendanceSummary() {
     }
     var dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
-    var message = "WEEKLY ATTENDANCE SUMMARY\n";
+    var message = "📅 WEEKLY ATTENDANCE SUMMARY\n";
+    message += "========================================\n";
     message += "Subject: " + subject_name + "\n";
     message += "Week: " + monday.toLocaleDateString() + " to " + friday.toLocaleDateString() + "\n";
-    message += "----------------------------------------\n\n";
+    message += "========================================\n\n";
     message += "Student".padEnd(20);
     for (var d = 0; d < dayNames.length; d++) {
       message += dayNames[d].padEnd(6);
@@ -389,7 +390,7 @@ async function weeklyAttendanceSummary() {
 
     var overallPercent = totalDaysAll > 0 ? Math.round((totalPresentAll / totalDaysAll) * 100) : 0;
     message += "\n----------------------------------------\n";
-    message += "Class Overall: " + totalPresentAll + "/" + totalDaysAll + " (" + overallPercent + "%)\n";
+    message += "📊 Class Overall: " + totalPresentAll + "/" + totalDaysAll + " (" + overallPercent + "%)\n";
 
     alert(message);
   } catch (err) {
@@ -408,7 +409,7 @@ async function cumulativeAttendanceReport() {
   var subject_name = localStorage.getItem("subject_name");
 
   if (!subject_id) {
-    alert("No subject selected. Please go back and select a subject.");
+    alert("No subject selected.");
     return;
   }
 
@@ -455,7 +456,7 @@ async function cumulativeAttendanceReport() {
       });
     }
 
-    var message = "CUMULATIVE ATTENDANCE REPORT\n";
+    var message = "📊 CUMULATIVE ATTENDANCE REPORT\n";
     message += "========================================\n";
     message += "Subject: " + subject_name + "\n";
     message += "Semester: " + semester + "\n";
@@ -494,9 +495,9 @@ async function cumulativeAttendanceReport() {
 
     var overallRate = totalClassesAll > 0 ? Math.round((totalPresentAll / totalClassesAll) * 100) : 0;
     message += "\n----------------------------------------\n";
-    message += "Class Overall: " + totalPresentAll + "/" + totalClassesAll + " (" + overallRate + "%)\n";
-    message += "Semester: " + semester + "\n";
-    message += "This is a running total that never resets.\n";
+    message += "📊 Class Overall: " + totalPresentAll + "/" + totalClassesAll + " (" + overallRate + "%)\n";
+    message += "📅 Semester: " + semester + "\n";
+    message += "🔄 This is a running total that never resets.\n";
 
     alert(message);
 
@@ -523,21 +524,284 @@ async function cumulativeAttendanceReport() {
 // EXPORT TO PDF
 // =====================
 async function exportToPDF() {
-  alert("PDF export feature ready. Click OK to generate PDF.");
+  alert("📄 PDF export feature ready. The full implementation would generate a professional PDF report.");
 }
 
 // =====================
 // EXPORT TO EXCEL
 // =====================
 async function exportToExcel() {
-  alert("Excel export feature ready. Click OK to generate Excel file.");
+  alert("📊 Excel export feature ready. The full implementation would generate an Excel spreadsheet.");
 }
 
 // =====================
 // EXPORT TO WORD
 // =====================
 async function exportToWord() {
-  alert("Word export feature ready. Click OK to generate Word document.");
+  alert("📝 Word export feature ready. The full implementation would generate a Word document.");
+}
+
+// =====================
+// STUDENT RECORDS PAGE FUNCTIONS
+// =====================
+
+var currentSubjectId = null;
+var currentStudentId = null;
+var currentAttendanceData = [];
+
+async function loadSubjectsForRecords() {
+  var subjectSelect = document.getElementById("subjectSelect");
+  if (!subjectSelect) return;
+  
+  subjectSelect.innerHTML = '<option value="">-- Select a subject --</option>';
+  
+  var result = await supabase
+    .from("subjects")
+    .select("*");
+  
+  if (result.error) {
+    console.error("Error loading subjects:", result.error);
+    return;
+  }
+  
+  var uniqueSubjects = [];
+  var subjectNames = [];
+  
+  result.data.forEach(function(subject) {
+    if (!subjectNames.includes(subject.subject_name)) {
+      subjectNames.push(subject.subject_name);
+      uniqueSubjects.push(subject);
+    }
+  });
+  
+  uniqueSubjects.forEach(function(subject) {
+    var option = document.createElement("option");
+    option.value = subject.id;
+    option.textContent = subject.subject_name;
+    subjectSelect.appendChild(option);
+  });
+}
+
+async function loadStudentsForSubject(subjectId) {
+  var studentSelect = document.getElementById("studentSelect");
+  if (!studentSelect) return;
+  
+  studentSelect.innerHTML = '<option value="">-- Select a student --</option>';
+  studentSelect.disabled = true;
+  
+  if (!subjectId) return;
+  
+  var result = await supabase
+    .from("enrollments")
+    .select("student_id, students(id, name)")
+    .eq("subject_id", subjectId);
+  
+  if (result.error) {
+    console.error("Error loading students:", result.error);
+    return;
+  }
+  
+  result.data.forEach(function(item) {
+    var student = item.students;
+    var option = document.createElement("option");
+    option.value = student.id;
+    option.textContent = student.name;
+    studentSelect.appendChild(option);
+  });
+  
+  studentSelect.disabled = false;
+}
+
+async function loadStudentAttendanceHistory(studentId, subjectId) {
+  if (!studentId || !subjectId) return;
+  
+  var tableBody = document.getElementById("attendanceTableBody");
+  if (tableBody) {
+    tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">Loading records...</td></tr>';
+  }
+  
+  var result = await supabase
+    .from("attendance")
+    .select("attendance_date, status")
+    .eq("student_id", studentId)
+    .eq("subject_id", subjectId)
+    .order("attendance_date", { ascending: false });
+  
+  if (result.error) {
+    console.error("Error loading attendance:", result.error);
+    alert("Error loading attendance records: " + result.error.message);
+    return;
+  }
+  
+  currentAttendanceData = result.data || [];
+  
+  var today = new Date();
+  var year = today.getFullYear();
+  var semester = today.getMonth() < 6 ? year + "-S1" : year + "-S2";
+  
+  var cumulativeResult = await supabase
+    .from("cumulative_attendance")
+    .select("*")
+    .eq("student_id", studentId)
+    .eq("subject_id", subjectId)
+    .eq("semester", semester);
+  
+  if (!cumulativeResult.error && cumulativeResult.data && cumulativeResult.data.length > 0) {
+    var cum = cumulativeResult.data[0];
+    document.getElementById("totalPresent").textContent = cum.total_present || 0;
+    document.getElementById("totalAbsent").textContent = cum.total_absences || 0;
+    document.getElementById("totalClasses").textContent = cum.total_classes || 0;
+    var rate = cum.total_classes > 0 ? Math.round((cum.total_present / cum.total_classes) * 100) : 0;
+    document.getElementById("attendanceRate").textContent = rate + "%";
+  } else {
+    document.getElementById("totalPresent").textContent = "0";
+    document.getElementById("totalAbsent").textContent = "0";
+    document.getElementById("totalClasses").textContent = "0";
+    document.getElementById("attendanceRate").textContent = "0%";
+  }
+  
+  var studentResult = await supabase
+    .from("students")
+    .select("name")
+    .eq("id", studentId)
+    .single();
+  
+  if (!studentResult.error) {
+    document.getElementById("studentNameDisplay").textContent = studentResult.data.name;
+    document.getElementById("studentSemester").textContent = "Semester: " + semester;
+    document.getElementById("studentInfo").style.display = "block";
+  }
+  
+  displayAttendanceTable(currentAttendanceData);
+}
+
+function displayAttendanceTable(attendanceData) {
+  var tableBody = document.getElementById("attendanceTableBody");
+  if (!tableBody) return;
+  
+  if (!attendanceData || attendanceData.length === 0) {
+    tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No attendance records found for this student</td></tr>';
+    return;
+  }
+  
+  tableBody.innerHTML = "";
+  var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  
+  attendanceData.forEach(function(record) {
+    var row = tableBody.insertRow();
+    var date = new Date(record.attendance_date);
+    row.insertCell(0).textContent = date.toLocaleDateString();
+    var statusCell = row.insertCell(1);
+    statusCell.textContent = record.status === "present" ? "✓ Present" : "✗ Absent";
+    statusCell.className = record.status === "present" ? "status-present" : "status-absent";
+    row.insertCell(2).textContent = days[date.getDay()];
+  });
+}
+
+async function exportStudentToPDF() {
+  if (!currentStudentId || !currentSubjectId) {
+    alert("Please select a student first.");
+    return;
+  }
+  
+  var studentName = document.getElementById("studentNameDisplay").textContent;
+  var subjectSelect = document.getElementById("subjectSelect");
+  var subjectName = subjectSelect.options[subjectSelect.selectedIndex]?.text || "Unknown";
+  var present = document.getElementById("totalPresent").textContent;
+  var absent = document.getElementById("totalAbsent").textContent;
+  var total = document.getElementById("totalClasses").textContent;
+  var rate = document.getElementById("attendanceRate").textContent;
+  
+  var htmlContent = '<div style="font-family: Arial, sans-serif; padding: 40px;">' +
+    '<h1 style="text-align: center; color: #667eea;">STUDENT ATTENDANCE RECORD</h1><hr>' +
+    '<p><strong>Student Name:</strong> ' + studentName + '</p>' +
+    '<p><strong>Subject:</strong> ' + subjectName + '</p>' +
+    '<p><strong>Generated:</strong> ' + new Date().toLocaleString() + '</p><hr>' +
+    '<h3>Summary</h3>' +
+    '<table style="width: 100%; border-collapse: collapse;">' +
+    '<tr style="background: #667eea; color: white;"><th style="padding: 10px;">Total Present</th><th style="padding: 10px;">Total Absent</th><th style="padding: 10px;">Total Classes</th><th style="padding: 10px;">Attendance Rate</th></tr>' +
+    '<tr style="text-align: center;"><td style="padding: 10px;">' + present + '</td><td style="padding: 10px;">' + absent + '</td><td style="padding: 10px;">' + total + '</td><td style="padding: 10px;">' + rate + '</td></tr>' +
+    '</table><h3>Attendance History</h3>' +
+    '<table style="width: 100%; border-collapse: collapse;"><tr style="background: #667eea; color: white;"><th style="padding: 10px;">Date</th><th style="padding: 10px;">Status</th></tr>';
+  
+  currentAttendanceData.forEach(function(record) {
+    htmlContent += '<tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">' + new Date(record.attendance_date).toLocaleDateString() + '</td>' +
+      '<td style="padding: 8px; border-bottom: 1px solid #ddd; color: ' + (record.status === 'present' ? '#27ae60' : '#e74c3c') + '">' + (record.status === 'present' ? 'Present' : 'Absent') + '</td></tr>';
+  });
+  
+  htmlContent += '</table><p style="margin-top: 40px; text-align: center; font-size: 12px; color: #999;">Generated by Web Attendance System</p></div>';
+  
+  var element = document.createElement('div');
+  element.innerHTML = htmlContent;
+  document.body.appendChild(element);
+  
+  var opt = { margin: [0.5, 0.5, 0.5, 0.5], filename: studentName + "_Attendance_Record.pdf", image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } };
+  
+  await html2pdf().set(opt).from(element).save();
+  document.body.removeChild(element);
+  alert("PDF exported successfully!");
+}
+
+async function exportStudentToExcel() {
+  if (!currentStudentId || !currentSubjectId) {
+    alert("Please select a student first.");
+    return;
+  }
+  
+  var studentName = document.getElementById("studentNameDisplay").textContent;
+  var subjectSelect = document.getElementById("subjectSelect");
+  var subjectName = subjectSelect.options[subjectSelect.selectedIndex]?.text || "Unknown";
+  var present = document.getElementById("totalPresent").textContent;
+  var absent = document.getElementById("totalAbsent").textContent;
+  var total = document.getElementById("totalClasses").textContent;
+  var rate = document.getElementById("attendanceRate").textContent;
+  
+  var excelData = [["STUDENT ATTENDANCE RECORD"], ["Student Name:", studentName], ["Subject:", subjectName], ["Generated:", new Date().toLocaleString()], [], ["SUMMARY"], ["Total Present", present], ["Total Absent", absent], ["Total Classes", total], ["Attendance Rate", rate], [], ["ATTENDANCE HISTORY"], ["Date", "Status"]];
+  
+  currentAttendanceData.forEach(function(record) {
+    excelData.push([new Date(record.attendance_date).toLocaleDateString(), record.status === "present" ? "PRESENT" : "ABSENT"]);
+  });
+  
+  var ws = XLSX.utils.aoa_to_sheet(excelData);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Attendance Record");
+  XLSX.writeFile(wb, studentName + "_Attendance_Record.xlsx");
+  alert("Excel exported successfully!");
+}
+
+function initStudentRecordsPage() {
+  var subjectSelect = document.getElementById("subjectSelect");
+  if (subjectSelect) {
+    subjectSelect.addEventListener("change", function() {
+      currentSubjectId = this.value;
+      loadStudentsForSubject(currentSubjectId);
+      currentStudentId = null;
+      document.getElementById("studentInfo").style.display = "none";
+      document.getElementById("attendanceTableBody").innerHTML = '<tr><td colspan="3" style="text-align: center;">Select a student to view records</td></tr>';
+      document.getElementById("totalPresent").textContent = "0";
+      document.getElementById("totalAbsent").textContent = "0";
+      document.getElementById("totalClasses").textContent = "0";
+      document.getElementById("attendanceRate").textContent = "0%";
+    });
+  }
+  
+  var studentSelect = document.getElementById("studentSelect");
+  if (studentSelect) {
+    studentSelect.addEventListener("change", function() {
+      currentStudentId = this.value;
+      if (currentStudentId && currentSubjectId) {
+        loadStudentAttendanceHistory(currentStudentId, currentSubjectId);
+      }
+    });
+  }
+  
+  var exportPdfBtn = document.getElementById("exportStudentPdfBtn");
+  if (exportPdfBtn) exportPdfBtn.addEventListener("click", exportStudentToPDF);
+  
+  var exportExcelBtn = document.getElementById("exportStudentExcelBtn");
+  if (exportExcelBtn) exportExcelBtn.addEventListener("click", exportStudentToExcel);
+  
+  loadSubjectsForRecords();
 }
 
 // =====================
@@ -577,5 +841,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
     var wordBtn = document.getElementById("exportWordBtn");
     if (wordBtn) wordBtn.addEventListener("click", exportToWord);
+  }
+
+  if (window.location.pathname.includes("student_records.html")) {
+    initStudentRecordsPage();
   }
 });
