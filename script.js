@@ -19,40 +19,48 @@ var isSubmitting = false;
 // TIMEZONE UTILITY (UTC+10:00 - Guam/Port Moresby)
 // =====================
 function getCurrentDateInUTC10() {
-  // Get current date in UTC+10 timezone
   const now = new Date();
-  const utc10Date = new Date(now.toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" }));
-  return utc10Date.toISOString().split("T")[0];
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Port_Moresby',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  return formatter.format(now);
 }
 
 function formatDateInUTC10(dateString) {
   if (!dateString) return "N/A";
   try {
     const date = new Date(dateString + "T12:00:00");
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      timeZone: "Pacific/Port_Moresby"
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Pacific/Port_Moresby',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
     });
+    return formatter.format(date);
   } catch (e) {
     return dateString;
   }
 }
 
 function getWeekDatesInUTC10() {
-  // Get current date in UTC+10
   const now = new Date();
-  const utc10Date = new Date(now.toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" }));
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Port_Moresby',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const todayStr = formatter.format(now);
+  const utc10Date = new Date(todayStr + "T12:00:00");
   
-  // Calculate Monday of current week (Monday = 1, Sunday = 0)
   const currentDay = utc10Date.getDay();
   const daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
   const monday = new Date(utc10Date);
   monday.setDate(utc10Date.getDate() - daysToMonday);
-  monday.setHours(0, 0, 0, 0);
   
-  // Calculate Friday (Monday + 4 days)
   const friday = new Date(monday);
   friday.setDate(monday.getDate() + 4);
   
@@ -66,11 +74,17 @@ function getWeekDatesInUTC10() {
 
 function getSemesterInUTC10() {
   const now = new Date();
-  const utc10Date = new Date(now.toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" }));
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Port_Moresby',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const todayStr = formatter.format(now);
+  const utc10Date = new Date(todayStr + "T12:00:00");
   const year = utc10Date.getFullYear();
   const month = utc10Date.getMonth();
-  const semester = month < 6 ? year + "-S1" : year + "-S2";
-  return semester;
+  return month < 6 ? year + "-S1" : year + "-S2";
 }
 
 // =====================
@@ -169,7 +183,7 @@ async function loadStudents() {
 }
 
 // =====================
-// LOAD EXISTING ATTENDANCE (with UTC+10 timezone)
+// LOAD EXISTING ATTENDANCE
 // =====================
 async function loadExistingAttendance() {
   var subject_id = localStorage.getItem("subject_id");
@@ -200,7 +214,7 @@ async function loadExistingAttendance() {
 }
 
 // =====================
-// SUBMIT ATTENDANCE (with UTC+10 timezone)
+// SUBMIT ATTENDANCE
 // =====================
 async function submitAttendance() {
   if (isSubmitting) {
@@ -227,7 +241,6 @@ async function submitAttendance() {
   submitBtn.disabled = true;
 
   try {
-    // Step 1: Delete existing records for today
     var deleteResult = await supabase
       .from("attendance")
       .delete()
@@ -239,7 +252,6 @@ async function submitAttendance() {
       return;
     }
 
-    // Step 2: Prepare and insert records
     var records = [];
     checkboxes.forEach(function(cb) {
       records.push({
@@ -277,7 +289,7 @@ async function submitAttendance() {
 }
 
 // =====================
-// DAILY ATTENDANCE REPORT (with UTC+10 timezone)
+// DAILY ATTENDANCE REPORT
 // =====================
 async function viewAttendanceReport() {
   var subject_id = localStorage.getItem("subject_id");
@@ -333,7 +345,7 @@ async function viewAttendanceReport() {
 }
 
 // =====================
-// WEEKLY ATTENDANCE SUMMARY (with UTC+10 timezone)
+// WEEKLY ATTENDANCE SUMMARY
 // =====================
 async function weeklyAttendanceSummary() {
   var subject_id = localStorage.getItem("subject_id");
@@ -391,7 +403,6 @@ async function weeklyAttendanceSummary() {
       });
     }
 
-    // Generate week dates array
     var weekDateStrs = [];
     var monday = new Date(startDate + "T12:00:00");
     for (var i = 0; i < 5; i++) {
@@ -458,7 +469,7 @@ async function weeklyAttendanceSummary() {
 }
 
 // =====================
-// CUMULATIVE ATTENDANCE REPORT (with UTC+10 timezone)
+// CUMULATIVE ATTENDANCE REPORT
 // =====================
 async function cumulativeAttendanceReport() {
   var subject_id = localStorage.getItem("subject_id");
@@ -551,7 +562,6 @@ async function cumulativeAttendanceReport() {
     message += "\n----------------------------------------\n";
     message += "📊 Class Overall: " + totalPresentAll + "/" + totalClassesAll + " (" + overallRate + "%)\n";
     message += "📅 Semester: " + semester + "\n";
-    message += "🔄 Timezone: UTC+10:00 (Guam/Port Moresby)\n";
 
     alert(message);
 
@@ -575,24 +585,18 @@ async function cumulativeAttendanceReport() {
 }
 
 // =====================
-// EXPORT TO PDF
+// EXPORT FUNCTIONS
 // =====================
 async function exportToPDF() {
-  alert("📄 PDF export feature ready. The full implementation would generate a professional PDF report.");
+  alert("📄 PDF export feature ready.");
 }
 
-// =====================
-// EXPORT TO EXCEL
-// =====================
 async function exportToExcel() {
-  alert("📊 Excel export feature ready. The full implementation would generate an Excel spreadsheet.");
+  alert("📊 Excel export feature ready.");
 }
 
-// =====================
-// EXPORT TO WORD
-// =====================
 async function exportToWord() {
-  alert("📝 Word export feature ready. The full implementation would generate a Word document.");
+  alert("📝 Word export feature ready.");
 }
 
 // =====================
@@ -747,7 +751,6 @@ function displayAttendanceTable(attendanceData) {
     statusCell.textContent = record.status === "present" ? "✓ Present" : "✗ Absent";
     statusCell.className = record.status === "present" ? "status-present" : "status-absent";
     
-    // Calculate correct day of week for UTC+10
     try {
       var dateObj = new Date(record.attendance_date + "T12:00:00");
       var utc10Day = new Date(dateObj.toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" }));
@@ -777,7 +780,7 @@ async function exportStudentToPDF() {
     '<p><strong>Student Name:</strong> ' + studentName + '</p>' +
     '<p><strong>Subject:</strong> ' + subjectName + '</p>' +
     '<p><strong>Generated:</strong> ' + new Date().toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" }) + '</p>' +
-    '<p><strong>Timezone:</strong> UTC+10:00 (Guam/Port Moresby)</p><hr>' +
+    '<p><strong>Timezone:</strong> UTC+10:00 (Papua New Guinea)</p><hr>' +
     '<h3>Summary</h3>' +
     '<table style="width: 100%; border-collapse: collapse;">' +
     '<tr style="background: #667eea; color: white;"><th style="padding: 10px;">Total Present</th><th style="padding: 10px;">Total Absent</th><th style="padding: 10px;">Total Classes</th><th style="padding: 10px;">Attendance Rate</th><\/tr>' +
@@ -818,7 +821,7 @@ async function exportStudentToExcel() {
   var total = document.getElementById("totalClasses").textContent;
   var rate = document.getElementById("attendanceRate").textContent;
   
-  var excelData = [["STUDENT ATTENDANCE RECORD"], ["Student Name:", studentName], ["Subject:", subjectName], ["Generated:", new Date().toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" })], ["Timezone:", "UTC+10:00 (Guam/Port Moresby)"], [], ["SUMMARY"], ["Total Present", present], ["Total Absent", absent], ["Total Classes", total], ["Attendance Rate", rate], [], ["ATTENDANCE HISTORY"], ["Date", "Status"]];
+  var excelData = [["STUDENT ATTENDANCE RECORD"], ["Student Name:", studentName], ["Subject:", subjectName], ["Generated:", new Date().toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" })], ["Timezone:", "UTC+10:00 (Papua New Guinea)"], [], ["SUMMARY"], ["Total Present", present], ["Total Absent", absent], ["Total Classes", total], ["Attendance Rate", rate], [], ["ATTENDANCE HISTORY"], ["Date", "Status"]];
   
   currentAttendanceData.forEach(function(record) {
     var displayDate = formatDateInUTC10(record.attendance_date);
