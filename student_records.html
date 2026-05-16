@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Attendance Records</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="script.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📖 Student Attendance Records</h1>
+            <p>View real-time attendance history for each student</p>
+        </div>
+        
+        <div class="content">
+            <!-- Subject Selector -->
+            <div class="selector-section">
+                <label for="subjectSelect">Select Subject:</label>
+                <select id="subjectSelect" class="subject-select">
+                    <option value="">-- Loading subjects --</option>
+                </select>
+            </div>
+
+            <!-- Student Selector -->
+            <div class="selector-section">
+                <label for="studentSelect">Select Student:</label>
+                <select id="studentSelect" class="student-select" disabled>
+                    <option value="">-- Select a subject first --</option>
+                </select>
+            </div>
+
+            <!-- Real-time Stats Cards -->
+            <div id="statsCards" class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalPresent">0</div>
+                    <div class="stat-label">Total Present</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalAbsent">0</div>
+                    <div class="stat-label">Total Absent</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalClasses">0</div>
+                    <div class="stat-label">Total Classes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="attendanceRate">0%</div>
+                    <div class="stat-label">Attendance Rate</div>
+                </div>
+            </div>
+
+            <!-- Student Info -->
+            <div id="studentInfo" class="student-info-card" style="display: none;">
+                <h3 id="studentNameDisplay"></h3>
+                <p id="studentSemester"></p>
+            </div>
+
+            <!-- Attendance History Table -->
+            <div class="history-section">
+                <h3>Attendance History</h3>
+                <div class="table-wrapper">
+                    <table id="attendanceTable" class="attendance-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Day of Week</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTableBody">
+                            <tr><td colspan="3" style="text-align: center;">Select a student to view records</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Export Buttons -->
+            <div class="button-group">
+                <button id="exportStudentPdfBtn" class="btn-pdf">📄 Export PDF</button>
+                <button id="exportStudentExcelBtn" class="btn-excel">📊 Export Excel</button>
+                <a href="dashboard.html" class="btn-back">← Back to Dashboard</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Real-time student attendance records | Updated automatically</p>
+        </div>
+    </div>
+</body>
+</html>
