@@ -280,6 +280,28 @@ button {
   transform: translateY(-2px);
 }
 
+/* Records Button */
+.btn-records {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  flex: 1;
+  min-width: 150px;
+}
+
+.btn-records:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(52, 152, 219, 0.3);
+}
+
 /* Footer */
 .footer {
   text-align: center;
@@ -310,7 +332,151 @@ button {
   background: darkblue;
 }
 
-/* Responsive Design */
+/* ===================== */
+/* STUDENT RECORDS PAGE STYLES */
+/* ===================== */
+
+.selector-section {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.selector-section label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.subject-select, .student-select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    background: white;
+    cursor: pointer;
+}
+
+.subject-select:focus, .student-select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* Stats Cards */
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin: 25px 0;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.stat-label {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+/* Student Info Card */
+.student-info-card {
+    background: #f0f0ff;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.student-info-card h3 {
+    margin: 0 0 10px 0;
+    color: #667eea;
+    font-size: 24px;
+}
+
+.student-info-card p {
+    margin: 0;
+    color: #666;
+}
+
+/* Attendance Table */
+.history-section {
+    margin-top: 25px;
+}
+
+.history-section h3 {
+    text-align: left;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+}
+
+.attendance-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.attendance-table th,
+.attendance-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.attendance-table th {
+    background: #667eea;
+    color: white;
+    position: sticky;
+    top: 0;
+}
+
+.attendance-table tr:hover {
+    background: #f5f5f5;
+}
+
+.status-present {
+    color: #27ae60;
+    font-weight: bold;
+}
+
+.status-absent {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .stats-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .attendance-table th,
+    .attendance-table td {
+        padding: 8px;
+        font-size: 12px;
+    }
+}
+
 @media (max-width: 750px) {
   .container {
     width: 95%;
@@ -321,7 +487,7 @@ button {
     flex-direction: column;
   }
   
-  .btn-submit, .btn-report, .btn-weekly, .btn-cumulative, .btn-pdf, .btn-excel, .btn-word, .btn-back {
+  .btn-submit, .btn-report, .btn-weekly, .btn-cumulative, .btn-pdf, .btn-excel, .btn-word, .btn-back, .btn-records {
     width: 100%;
     min-width: unset;
   }
