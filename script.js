@@ -1194,83 +1194,163 @@ async function exportStudentToPDF() {
 
     const currentTime = new Date().toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" });
 
-    // Build HTML content for PDF
-    let htmlContent = `
-      <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #667eea;">STUDENT ATTENDANCE RECORD</h1>
-          <hr style="border: 1px solid #e2e8f0;">
-        </div>
+    // Build HTML content for PDF - Using simpler table structure
+    let tableRows = "";
+    for (let i = 0; i < attendanceData.length; i++) {
+      const record = attendanceData[i];
+      const displayDate = formatDateInUTC10(record.attendance_date);
+      const statusText = record.status === "present" ? "Present" : "Absent";
+      const statusColor = record.status === "present" ? "#27ae60" : "#e74c3c";
+      
+      tableRows += `
+        <tr style="border-bottom: 1px solid #ddd;">
+          <td style="padding: 8px;">${i + 1}</td>
+          <td style="padding: 8px;">${displayDate}</td>
+          <td style="padding: 8px; color: ${statusColor}; font-weight: bold;">${statusText}</td>
+        </tr>
+      `;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Student Attendance Record</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            margin: 0 auto;
+            max-width: 800px;
+          }
+          h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+          }
+          hr {
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+          }
+          .info {
+            margin-bottom: 20px;
+            line-height: 1.6;
+          }
+          .info p {
+            margin: 5px 0;
+          }
+          h3 {
+            color: #38a169;
+            margin-top: 30px;
+            margin-bottom: 15px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+          }
+          th {
+            background: #667eea;
+            color: white;
+            padding: 10px;
+            text-align: left;
+          }
+          td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+          }
+          .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+          }
+          .summary-table th {
+            background: #667eea;
+            color: white;
+            padding: 10px;
+            text-align: center;
+          }
+          .summary-table td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+          }
+          .footer {
+            margin-top: 40px;
+            text-align: center;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+            font-size: 12px;
+            color: #718096;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>STUDENT ATTENDANCE RECORD</h1>
+        <hr>
         
-        <div style="margin-bottom: 20px;">
+        <div class="info">
           <p><strong>Student Name:</strong> ${student_name}</p>
           <p><strong>Subject:</strong> ${subject_name}</p>
           <p><strong>Generated:</strong> ${currentTime}</p>
           <p><strong>Timezone:</strong> UTC+10:00 (Papua New Guinea)</p>
         </div>
         
-        <div style="margin-bottom: 30px;">
-          <h3 style="color: #38a169;">SUMMARY</h3>
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr style="background: #667eea; color: white;">
-              <th style="padding: 10px;">Total Present</th>
-              <th style="padding: 10px;">Total Absent</th>
-              <th style="padding: 10px;">Total Classes</th>
-              <th style="padding: 10px;">Attendance Rate</th>
+        <h3>SUMMARY</h3>
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>Total Present</th>
+              <th>Total Absent</th>
+              <th>Total Classes</th>
+              <th>Attendance Rate</th>
             </tr>
-            <tr style="text-align: center;">
-              <td style="padding: 10px; border-bottom: 1px solid #ddd;">${presentCount}</td>
-              <td style="padding: 10px; border-bottom: 1px solid #ddd;">${absentCount}</td>
-              <td style="padding: 10px; border-bottom: 1px solid #ddd;">${totalClasses}</td>
-              <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>${rate}%</strong></td>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="text-align: center;">${presentCount}</td>
+              <td style="text-align: center;">${absentCount}</td>
+              <td style="text-align: center;">${totalClasses}</td>
+              <td style="text-align: center;"><strong>${rate}%</strong></td>
             </tr>
-          </table>
-        </div>
+          </tbody>
+        </table>
         
-        <div style="margin-bottom: 30px;">
-          <h3>ATTENDANCE HISTORY</h3>
-          <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-              <tr style="background: #667eea; color: white;">
-                <th style="padding: 10px;">#</th>
-                <th style="padding: 10px;">Date</th>
-                <th style="padding: 10px;">Status</th>
-              </tr>
-            </thead>
-            <tbody>`;
-
-    attendanceData.forEach(function(record, index) {
-      const displayDate = formatDateInUTC10(record.attendance_date);
-      const statusText = record.status === "present" ? "Present" : "Absent";
-      const statusColor = record.status === "present" ? "#27ae60" : "#e74c3c";
-      
-      htmlContent += `
-        <tr style="border-bottom: 1px solid #ddd;">
-          <td style="padding: 8px;">${index + 1}</td>
-          <td style="padding: 8px;">${displayDate}</td>
-          <td style="padding: 8px; color: ${statusColor}; font-weight: bold;">${statusText}</td>
-        </tr>`;
-    });
-
-    htmlContent += `
-            </tbody>
-          </table>
-        </div>
+        <h3>ATTENDANCE HISTORY</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
         
-        <div style="margin-top: 40px; text-align: center; padding-top: 20px; border-top: 2px solid #e2e8f0;">
-          <p style="color: #718096; font-size: 12px;">Generated by Web Attendance System (UTC+10:00)</p>
+        <div class="footer">
+          <p>Generated by Web Attendance System (UTC+10:00)</p>
         </div>
-      </div>`;
+      </body>
+      </html>
+    `;
 
+    // Create a temporary div to hold the content
     const element = document.createElement('div');
     element.innerHTML = htmlContent;
+    element.style.position = 'absolute';
+    element.style.left = '-9999px';
+    element.style.top = '-9999px';
     document.body.appendChild(element);
     
     const opt = {
       margin: [0.5, 0.5, 0.5, 0.5],
-      filename: student_name + "_Attendance_Record.pdf",
+      filename: student_name.replace(/[^a-zA-Z0-9]/g, '_') + "_Attendance_Record.pdf",
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
+      html2canvas: { scale: 2, logging: false, useCORS: false },
       jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
     };
     
@@ -1287,8 +1367,6 @@ async function exportStudentToPDF() {
     btn.disabled = false;
   }
 }
-
-
 // =====================
 // 📊 EXPORT STUDENT TO EXCEL (FIXED)
 // =====================
