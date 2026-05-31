@@ -609,20 +609,22 @@ async function exportToWord() {
     exportBtn.disabled = false;
   }
 }
-
 // =====================
 // 📋 EXPORT DAILY REPORT (EXCEL) - Student Records Page
 // =====================
 async function exportDailyReport() {
-  const subject_id = localStorage.getItem("subject_id");
-  const subject_name = localStorage.getItem("subject_name");
-  const today = getCurrentDateInUTC10();
-  const displayDate = formatDateInUTC10(today);
+  // Get the currently selected subject from the dropdown, NOT from localStorage
+  const subjectSelect = document.getElementById("subjectSelect");
+  const subject_id = subjectSelect.value;
+  const subject_name = subjectSelect.options[subjectSelect.selectedIndex]?.text;
 
   if (!subject_id) {
     alert("No subject selected. Please select a subject first.");
     return;
   }
+
+  const today = getCurrentDateInUTC10();
+  const displayDate = formatDateInUTC10(today);
 
   const btn = document.getElementById("exportDailyReportBtn");
   const originalText = btn.innerHTML;
@@ -698,13 +700,14 @@ async function exportDailyReport() {
     btn.disabled = false;
   }
 }
-
 // =====================
 // 📅 EXPORT WEEKLY SUMMARY (PDF) - Student Records Page
 // =====================
 async function exportWeeklyReport() {
-  const subject_id = localStorage.getItem("subject_id");
-  const subject_name = localStorage.getItem("subject_name");
+  // Get the currently selected subject from the dropdown, NOT from localStorage
+  const subjectSelect = document.getElementById("subjectSelect");
+  const subject_id = subjectSelect.value;
+  const subject_name = subjectSelect.options[subjectSelect.selectedIndex]?.text;
 
   if (!subject_id) {
     alert("No subject selected. Please select a subject first.");
@@ -778,7 +781,7 @@ async function exportWeeklyReport() {
     for (let i = 0; i < dayNames.length; i++) {
       htmlContent += `<th style="padding: 10px;">${dayNames[i]}</th>`;
     }
-    htmlContent += `<th style="padding: 10px;">Total</th><th style="padding: 10px;">%</th></tr></thead><tbody>`;
+    htmlContent += `<th style="padding: 10px;">Total</th><th style="padding: 10px;">%</th><tr></thead><tbody>`;
 
     let totalPresentAll = 0;
     let totalDaysAll = 0;
@@ -791,20 +794,20 @@ async function exportWeeklyReport() {
       for (let i = 0; i < weekDateStrs.length; i++) {
         const status = attendanceMap[student.id] && attendanceMap[student.id][weekDateStrs[i]];
         if (status === "present") {
-          row += `<td style="padding: 10px; text-align: center; color: #27ae60;">✓</td>`;
+          row += `<td style="padding: 10px; text-align: center; color: #27ae60;">✓<\/td>`;
           presentCount++;
           daysRecorded++;
         } else if (status === "absent") {
-          row += `<td style="padding: 10px; text-align: center; color: #e74c3c;">✗</td>`;
+          row += `<td style="padding: 10px; text-align: center; color: #e74c3c;">✗<\/td>`;
           daysRecorded++;
         } else {
-          row += `<td style="padding: 10px; text-align: center; color: #999;">?</td>`;
+          row += `<td style="padding: 10px; text-align: center; color: #999;">?<\/td>`;
         }
       }
 
       const percent = daysRecorded > 0 ? Math.round((presentCount / daysRecorded) * 100) : 0;
-      row += `<td style="padding: 10px; text-align: center;">${presentCount}/${daysRecorded}</td>`;
-      row += `<td style="padding: 10px; text-align: center;">${percent}%</td></tr>`;
+      row += `<td style="padding: 10px; text-align: center;">${presentCount}/${daysRecorded}<\/td>`;
+      row += `<td style="padding: 10px; text-align: center;">${percent}%<\/td><\/tr>`;
       htmlContent += row;
 
       totalPresentAll += presentCount;
@@ -843,13 +846,14 @@ async function exportWeeklyReport() {
     btn.disabled = false;
   }
 }
-
 // =====================
 // 📊 EXPORT CUMULATIVE REPORT (WORD) - Student Records Page
 // =====================
 async function exportCumulativeReport() {
-  const subject_id = localStorage.getItem("subject_id");
-  const subject_name = localStorage.getItem("subject_name");
+  // Get the currently selected subject from the dropdown, NOT from localStorage
+  const subjectSelect = document.getElementById("subjectSelect");
+  const subject_id = subjectSelect.value;
+  const subject_name = subjectSelect.options[subjectSelect.selectedIndex]?.text;
 
   if (!subject_id) {
     alert("No subject selected. Please select a subject first.");
@@ -972,7 +976,6 @@ async function exportCumulativeReport() {
     btn.disabled = false;
   }
 }
-
 // =====================
 // STUDENT RECORDS PAGE FUNCTIONS
 // =====================
