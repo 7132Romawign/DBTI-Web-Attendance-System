@@ -153,7 +153,7 @@ async function loadSubjects() {
 }
 
 // =====================
-// LOAD STUDENTS
+// LOAD STUDENTS (ALWAYS UNCHECKED WHEN PAGE OPENS)
 // =====================
 async function loadStudents() {
   var subject_id = localStorage.getItem("subject_id");
@@ -172,45 +172,28 @@ async function loadStudents() {
   if (!list) return;
   list.innerHTML = "";
 
+  // Create checkboxes (all unchecked by default - ALWAYS)
   result.data.forEach(function(item) {
     var student = item.students;
     var div = document.createElement("div");
     div.innerHTML = '<label><input type="checkbox" value="' + student.id + '"> ' + student.name + '</label>';
+    // Ensure checkbox is unchecked
+    var checkbox = div.querySelector('input[type="checkbox"]');
+    checkbox.checked = false;
     list.appendChild(div);
   });
 
-  loadExistingAttendance();
+  // Do NOT load existing attendance - we want fresh unchecked boxes every time
+  console.log("Student list loaded with all checkboxes unchecked - ready for new attendance");
 }
 
 // =====================
-// LOAD EXISTING ATTENDANCE
+// LOAD EXISTING ATTENDANCE (NOT USED ANYMORE - KEPT FOR REFERENCE)
 // =====================
+// This function is no longer called. Checkboxes always start unchecked.
 async function loadExistingAttendance() {
-  var subject_id = localStorage.getItem("subject_id");
-  var today = getCurrentDateInUTC10();
-
-  var result = await supabase
-    .from("attendance")
-    .select("student_id, status")
-    .eq("subject_id", subject_id)
-    .eq("attendance_date", today);
-
-  if (result.error) {
-    console.error("Error loading existing attendance:", result.error);
-    return;
-  }
-
-  if (result.data && result.data.length > 0) {
-    result.data.forEach(function(record) {
-      if (record.status === "present") {
-        var checkbox = document.querySelector("#studentList input[value='" + record.student_id + "']");
-        if (checkbox) {
-          checkbox.checked = true;
-        }
-      }
-    });
-    console.log("Loaded " + result.data.length + " existing attendance records for " + today);
-  }
+  // Function intentionally left empty - no longer used
+  console.log("loadExistingAttendance is no longer active - checkboxes start fresh each time");
 }
 
 // =====================
@@ -585,18 +568,354 @@ async function cumulativeAttendanceReport() {
 }
 
 // =====================
-// EXPORT FUNCTIONS
+// 📄 EXPORT TO PDF (ATTENDANCE PAGE)
 // =====================
 async function exportToPDF() {
-  alert("📄 PDF export feature ready.");
+  const subject_id = localStorage.getItem("subject_id");
+  const subject_name = localStorage.getItem("subject_name");
+  const today = getCurrentDateInUTC10();
+  const displayDate = formatDateInUTC10(today);
+
+  if (!subject_id) {
+    alert("No subject selected. Please go back and select a subject.");
+    return;
+  }
+
+  const exportBtn = document.getElementById("exportPdfBtn");
+  const originalText = exportBtn.innerHTML;
+  exportBtn.innerHTML = "⏳ Generating PDF...";
+  exportBtn.disabled = true;
+
+  try {
+    const { data, error } = await supabase
+      .from("attendance")
+      .select(`
+        status,
+        students (name)
+      `)
+      .eq("subject_id", subject_id)
+      .eq("attendance_date", today);
+
+    if (error) {
+      alert("Error loading data: " + error.message);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      alert("No attendance records for " + subject_name + " on " + displayDate + "\n\nPlease submit attendance first.");
+      return;
+    }
+
+    let presentStudents = [];
+    let absentStudents = [];
+    
+    data.forEach(function(r) {
+      if (r.status === "present") {
+        presentStudents.push(r.students.name);
+      } else {
+        absentStudents.push(r.students.name);
+      }
+    });
+
+    const currentTime = new Date().toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" });
+    
+    const pdfContent = `
+      <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #4a5568; margin-bottom: 10px;">📋 ATTENDANCE REPORT</h1>
+          <hr style="border: 1px solid #e2e8f0;">
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+          <p><strong>Subject:</strong> ${subject_name}</p>
+          <p><strong>Date:</strong> ${displayDate}</p>
+          <p><strong>Generated:</strong> ${currentTime}</p>
+          <p><strong>Timezone:</strong> UTC+10:00 (Papua New Guinea)</p>
+        </div>
+        
+        <div style="margin-bottom: 30px;">
+          <h2 style="color: #38a169; border-bottom: 2px solid #38a169; padding-bottom: 10px;">✅ PRESENT (${presentStudents.length})</h2>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            ${presentStudents.map((student, index) => `
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px; width: 50px;">${index + 1}.<\/td>
+                <td style="padding: 10px;">${student}<\/td>
+                <td style="padding: 10px; color: #38a169;">✓ Present<\/td>
+              <\/tr>
+            `).join('')}
+            ${presentStudents.length === 0 ? '<td><td colspan="3" style="padding: 20px; text-align: center;">No students present<\/td><\/tr>' : ''}
+          <\/table>
+        <\/div>
+        
+        <div style="margin-bottom: 30px;">
+          <h2 style="color: #e53e3e; border-bottom: 2px solid #e53e3e; padding-bottom: 10px;">❌ ABSENT (${absentStudents.length})<\/h2>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            ${absentStudents.map((student, index) => `
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px; width: 50px;">${index + 1}.<\/td>
+                <td style="padding: 10px;">${student}<\/td>
+                <td style="padding: 10px; color: #e53e3e;">✗ Absent<\/td>
+              <\/tr>
+            `).join('')}
+            ${absentStudents.length === 0 ? '<td><td colspan="3" style="padding: 20px; text-align: center;">No students absent<\/td><\/tr>' : ''}
+          <\/table>
+        <\/div>
+        
+        <div style="margin-top: 40px; text-align: center; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+          <p style="color: #718096;">Total Students: ${data.length}<\/p>
+          <p style="color: #718096;">Attendance Rate: ${Math.round((presentStudents.length / data.length) * 100)}%<\/p>
+          <p style="color: #a0aec0; font-size: 10px;">Generated by Web Attendance System<\/p>
+        <\/div>
+      <\/div>
+    `;
+
+    const element = document.createElement('div');
+    element.innerHTML = pdfContent;
+    document.body.appendChild(element);
+    
+    const opt = {
+      margin: [0.5, 0.5, 0.5, 0.5],
+      filename: "Attendance_" + subject_name.replace(/[^a-zA-Z0-9]/g, '_') + "_" + today + ".pdf",
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, letterRendering: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
+    
+    await html2pdf().set(opt).from(element).save();
+    document.body.removeChild(element);
+    
+    alert("✅ PDF report generated successfully!");
+    
+  } catch (err) {
+    console.error("PDF Error:", err);
+    alert("Error generating PDF: " + err.message);
+  } finally {
+    exportBtn.innerHTML = originalText;
+    exportBtn.disabled = false;
+  }
 }
 
+// =====================
+// 📊 EXPORT TO EXCEL (ATTENDANCE PAGE)
+// =====================
 async function exportToExcel() {
-  alert("📊 Excel export feature ready.");
+  const subject_id = localStorage.getItem("subject_id");
+  const subject_name = localStorage.getItem("subject_name");
+  const today = getCurrentDateInUTC10();
+  const displayDate = formatDateInUTC10(today);
+
+  if (!subject_id) {
+    alert("No subject selected. Please go back and select a subject.");
+    return;
+  }
+
+  const exportBtn = document.getElementById("exportExcelBtn");
+  const originalText = exportBtn.innerHTML;
+  exportBtn.innerHTML = "⏳ Generating Excel...";
+  exportBtn.disabled = true;
+
+  try {
+    const { data, error } = await supabase
+      .from("attendance")
+      .select(`
+        status,
+        students (name)
+      `)
+      .eq("subject_id", subject_id)
+      .eq("attendance_date", today);
+
+    if (error) {
+      alert("Error loading data: " + error.message);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      alert("No attendance records for " + subject_name + " on " + displayDate + "\n\nPlease submit attendance first.");
+      return;
+    }
+
+    let excelData = [];
+    
+    excelData.push(["ATTENDANCE REPORT"]);
+    excelData.push(["Subject:", subject_name]);
+    excelData.push(["Date:", displayDate]);
+    excelData.push(["Generated:", new Date().toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" })]);
+    excelData.push(["Timezone:", "UTC+10:00 (Papua New Guinea)"]);
+    excelData.push([]);
+    excelData.push(["#", "Student Name", "Status"]);
+    
+    let presentCount = 0;
+    let absentCount = 0;
+    let rowNumber = 1;
+    
+    data.forEach(record => {
+      if (record.status === "present") {
+        excelData.push([rowNumber, record.students.name, "PRESENT"]);
+        presentCount++;
+        rowNumber++;
+      }
+    });
+    
+    data.forEach(record => {
+      if (record.status === "absent") {
+        excelData.push([rowNumber, record.students.name, "ABSENT"]);
+        absentCount++;
+        rowNumber++;
+      }
+    });
+    
+    excelData.push([]);
+    excelData.push(["SUMMARY"]);
+    excelData.push(["Total Students:", data.length]);
+    excelData.push(["Present:", presentCount]);
+    excelData.push(["Absent:", absentCount]);
+    excelData.push(["Attendance Rate:", Math.round((presentCount / data.length) * 100) + "%"]);
+
+    const ws = XLSX.utils.aoa_to_sheet(excelData);
+    
+    ws['!cols'] = [
+      {wch: 5},
+      {wch: 35},
+      {wch: 12}
+    ];
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Attendance Report");
+    
+    const fileName = "Attendance_" + subject_name.replace(/[^a-zA-Z0-9]/g, '_') + "_" + today + ".xlsx";
+    
+    XLSX.writeFile(wb, fileName);
+    
+    alert("✅ Excel report generated successfully!");
+    
+  } catch (err) {
+    console.error("Excel Error:", err);
+    alert("Error generating Excel: " + err.message);
+  } finally {
+    exportBtn.innerHTML = originalText;
+    exportBtn.disabled = false;
+  }
 }
 
+// =====================
+// 📝 EXPORT TO WORD (ATTENDANCE PAGE)
+// =====================
 async function exportToWord() {
-  alert("📝 Word export feature ready.");
+  const subject_id = localStorage.getItem("subject_id");
+  const subject_name = localStorage.getItem("subject_name");
+  const today = getCurrentDateInUTC10();
+  const displayDate = formatDateInUTC10(today);
+
+  if (!subject_id) {
+    alert("No subject selected. Please go back and select a subject.");
+    return;
+  }
+
+  const exportBtn = document.getElementById("exportWordBtn");
+  const originalText = exportBtn.innerHTML;
+  exportBtn.innerHTML = "⏳ Generating Word...";
+  exportBtn.disabled = true;
+
+  try {
+    const { data, error } = await supabase
+      .from("attendance")
+      .select(`
+        status,
+        students (name)
+      `)
+      .eq("subject_id", subject_id)
+      .eq("attendance_date", today);
+
+    if (error) {
+      alert("Error loading data: " + error.message);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      alert("No attendance records for " + subject_name + " on " + displayDate + "\n\nPlease submit attendance first.");
+      return;
+    }
+
+    let presentStudents = [];
+    let absentStudents = [];
+    
+    data.forEach(function(r) {
+      if (r.status === "present") {
+        presentStudents.push(r.students.name);
+      } else {
+        absentStudents.push(r.students.name);
+      }
+    });
+
+    const currentTime = new Date().toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" });
+    
+    const wordContent = `<!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Attendance Report - ${subject_name}</title>
+      <style>
+        body { font-family: Calibri, Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        h1 { color: #2c3e50; text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .present-title { color: #27ae60; border-bottom: 2px solid #27ae60; margin-top: 30px; }
+        .absent-title { color: #e74c3c; border-bottom: 2px solid #e74c3c; margin-top: 30px; }
+        .info { background: #ecf0f1; padding: 15px; margin: 20px 0; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { padding: 10px; border-bottom: 1px solid #bdc3c7; text-align: left; }
+        th { background: #34495e; color: white; }
+        .footer { margin-top: 50px; text-align: center; color: #7f8c8d; font-size: 12px; border-top: 1px solid #bdc3c7; padding-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <h1>📋 ATTENDANCE REPORT</h1>
+      <div class="info">
+        <p><strong>Subject:</strong> ${subject_name}</p>
+        <p><strong>Date:</strong> ${displayDate}</p>
+        <p><strong>Generated:</strong> ${currentTime}</p>
+        <p><strong>Timezone:</strong> UTC+10:00 (Papua New Guinea)</p>
+      </div>
+      <h2 class="present-title">✅ PRESENT (${presentStudents.length})</h2>
+      <table>
+        <thead><tr><th>#</th><th>Student Name</th><th>Status</th></tr></thead>
+        <tbody>
+          ${presentStudents.map((student, index) => `<tr><td style="padding: 8px;">${index + 1}<\/td><td style="padding: 8px;">${student}<\/td><td style="padding: 8px; color: #27ae60;">Present<\/td><\/tr>`).join('')}
+          ${presentStudents.length === 0 ? '<tr><td colspan="3" style="text-align: center;">No students present<\/td><\/tr>' : ''}
+        </tbody>
+      </table>
+      <h2 class="absent-title">❌ ABSENT (${absentStudents.length})<\/h2>
+      <table>
+        <thead><tr><th>#</th><th>Student Name</th><th>Status</th></tr></thead>
+        <tbody>
+          ${absentStudents.map((student, index) => `<tr><td style="padding: 8px;">${index + 1}<\/td><td style="padding: 8px;">${student}<\/td><td style="padding: 8px; color: #e74c3c;">Absent<\/td><\/tr>`).join('')}
+          ${absentStudents.length === 0 ? '<tr><td colspan="3" style="text-align: center;">No students absent<\/td><\/tr>' : ''}
+        </tbody>
+      </table>
+      <div class="footer">
+        <p>Total Students: ${data.length} | Attendance Rate: ${Math.round((presentStudents.length / data.length) * 100)}%</p>
+        <p>Generated by Web Attendance System</p>
+      </div>
+    </body>
+    </html>`;
+
+    const blob = new Blob([wordContent], { type: 'application/msword' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = "Attendance_" + subject_name.replace(/[^a-zA-Z0-9]/g, '_') + "_" + today + ".doc";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    alert("✅ Word document generated successfully!");
+    
+  } catch (err) {
+    console.error("Word Error:", err);
+    alert("Error generating Word document: " + err.message);
+  } finally {
+    exportBtn.innerHTML = originalText;
+    exportBtn.disabled = false;
+  }
 }
 
 // =====================
