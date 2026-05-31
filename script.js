@@ -1139,7 +1139,7 @@ function displayAttendanceTable(attendanceData) {
 }
 
 // =====================
-// 📄 EXPORT STUDENT TO PDF (FIXED)
+// 📄 EXPORT STUDENT TO PDF (USING BROWSER PRINT - RELIABLE)
 // =====================
 async function exportStudentToPDF() {
   // Get the selected subject and student directly from the dropdowns
@@ -1158,7 +1158,7 @@ async function exportStudentToPDF() {
 
   const btn = document.getElementById("exportStudentPdfBtn");
   const originalText = btn.innerHTML;
-  btn.innerHTML = "⏳ Generating PDF...";
+  btn.innerHTML = "⏳ Generating...";
   btn.disabled = true;
 
   try {
@@ -1194,7 +1194,7 @@ async function exportStudentToPDF() {
 
     const currentTime = new Date().toLocaleString("en-US", { timeZone: "Pacific/Port_Moresby" });
 
-    // Build HTML content for PDF - Using simpler table structure
+    // Build the HTML content for the report
     let tableRows = "";
     for (let i = 0; i < attendanceData.length; i++) {
       const record = attendanceData[i];
@@ -1204,46 +1204,64 @@ async function exportStudentToPDF() {
       
       tableRows += `
         <tr style="border-bottom: 1px solid #ddd;">
-          <td style="padding: 8px;">${i + 1}</td>
+          <td style="padding: 8px; text-align: center;">${i + 1}</td>
           <td style="padding: 8px;">${displayDate}</td>
           <td style="padding: 8px; color: ${statusColor}; font-weight: bold;">${statusText}</td>
         </tr>
       `;
     }
 
-    const htmlContent = `
+    // Create a new window with the report content
+    const printWindow = window.open('', '_blank', 'width=900,height=700,scrollbars=yes,resizable=yes');
+    
+    printWindow.document.write(`
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>Student Attendance Record</title>
+        <title>${student_name} - Attendance Record</title>
         <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
           body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             padding: 40px;
             margin: 0 auto;
-            max-width: 800px;
+            max-width: 900px;
+            line-height: 1.5;
           }
           h1 {
             color: #667eea;
             text-align: center;
             margin-bottom: 10px;
+            font-size: 28px;
           }
           hr {
-            border: 1px solid #e2e8f0;
-            margin-bottom: 20px;
+            border: none;
+            border-top: 2px solid #667eea;
+            margin-bottom: 25px;
           }
           .info {
-            margin-bottom: 20px;
-            line-height: 1.6;
+            background: #f0f0ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            line-height: 1.8;
           }
           .info p {
             margin: 5px 0;
           }
+          .info strong {
+            color: #667eea;
+          }
           h3 {
             color: #38a169;
-            margin-top: 30px;
-            margin-bottom: 15px;
+            margin: 25px 0 15px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #38a169;
           }
           table {
             width: 100%;
@@ -1253,12 +1271,13 @@ async function exportStudentToPDF() {
           th {
             background: #667eea;
             color: white;
-            padding: 10px;
+            padding: 12px;
             text-align: left;
+            font-weight: bold;
           }
           td {
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
           }
           .summary-table {
             width: 100%;
@@ -1268,26 +1287,38 @@ async function exportStudentToPDF() {
           .summary-table th {
             background: #667eea;
             color: white;
-            padding: 10px;
+            padding: 12px;
             text-align: center;
           }
           .summary-table td {
             padding: 10px;
             text-align: center;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #e0e0e0;
+          }
+          .summary-table td strong {
+            color: #27ae60;
+            font-size: 18px;
           }
           .footer {
             margin-top: 40px;
             text-align: center;
             padding-top: 20px;
-            border-top: 2px solid #e2e8f0;
-            font-size: 12px;
-            color: #718096;
+            border-top: 1px solid #ccc;
+            font-size: 11px;
+            color: #999;
+          }
+          @media print {
+            body {
+              padding: 20px;
+            }
+            .no-print {
+              display: none;
+            }
           }
         </style>
       </head>
       <body>
-        <h1>STUDENT ATTENDANCE RECORD</h1>
+        <h1>📋 STUDENT ATTENDANCE RECORD</h1>
         <hr>
         
         <div class="info">
@@ -1297,7 +1328,7 @@ async function exportStudentToPDF() {
           <p><strong>Timezone:</strong> UTC+10:00 (Papua New Guinea)</p>
         </div>
         
-        <h3>SUMMARY</h3>
+        <h3>📊 SUMMARY STATISTICS</h3>
         <table class="summary-table">
           <thead>
             <tr>
@@ -1309,59 +1340,57 @@ async function exportStudentToPDF() {
           </thead>
           <tbody>
             <tr>
-              <td style="text-align: center;">${presentCount}</td>
-              <td style="text-align: center;">${absentCount}</td>
-              <td style="text-align: center;">${totalClasses}</td>
-              <td style="text-align: center;"><strong>${rate}%</strong></td>
+              <td><strong style="color: #27ae60; font-size: 24px;">${presentCount}</strong></td>
+              <td><strong style="color: #e74c3c; font-size: 24px;">${absentCount}</strong></td>
+              <td><strong style="font-size: 24px;">${totalClasses}</strong></td>
+              <td><strong style="color: #27ae60; font-size: 24px;">${rate}%</strong></td>
             </tr>
           </tbody>
         </table>
         
-        <h3>ATTENDANCE HISTORY</h3>
+        <h3>📅 ATTENDANCE HISTORY</h3>
         <table>
           <thead>
             <tr>
-              <th>#</th>
+              <th style="width: 50px;">#</th>
               <th>Date</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
             ${tableRows}
+            ${attendanceData.length === 0 ? '<tr><td colspan="3" style="text-align: center;">No attendance records found</td></tr>' : ''}
           </tbody>
         </table>
         
         <div class="footer">
-          <p>Generated by Web Attendance System (UTC+10:00)</p>
+          <p>Generated by Web Attendance System (UTC+10:00) | Papua New Guinea Timezone</p>
         </div>
+        
+        <div class="no-print" style="text-align: center; margin-top: 30px; padding: 15px; background: #f0f0f0; border-radius: 8px;">
+          <p style="margin-bottom: 10px;">📌 <strong>To save as PDF:</strong></p>
+          <p>Press <strong>Ctrl + P</strong> (Windows) or <strong>Cmd + P</strong> (Mac), then select <strong>"Save as PDF"</strong> as the printer.</p>
+        </div>
+        
+        <script>
+          // Automatically open print dialog when window loads
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 500);
+          };
+        </script>
       </body>
       </html>
-    `;
-
-    // Create a temporary div to hold the content
-    const element = document.createElement('div');
-    element.innerHTML = htmlContent;
-    element.style.position = 'absolute';
-    element.style.left = '-9999px';
-    element.style.top = '-9999px';
-    document.body.appendChild(element);
+    `);
     
-    const opt = {
-      margin: [0.5, 0.5, 0.5, 0.5],
-      filename: student_name.replace(/[^a-zA-Z0-9]/g, '_') + "_Attendance_Record.pdf",
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, logging: false, useCORS: false },
-      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-    };
+    printWindow.document.close();
     
-    await html2pdf().set(opt).from(element).save();
-    document.body.removeChild(element);
-    
-    alert("✅ PDF exported successfully!");
+    alert("✅ Report generated! The print dialog will open automatically. Select 'Save as PDF' to save the file.");
     
   } catch (err) {
     console.error("PDF Error:", err);
-    alert("Error generating PDF: " + err.message);
+    alert("Error generating report: " + err.message);
   } finally {
     btn.innerHTML = originalText;
     btn.disabled = false;
