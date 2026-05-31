@@ -129,73 +129,13 @@ button {
   cursor: pointer;
   transition: all 0.3s ease;
   flex: 1;
-  min-width: 130px;
+  min-width: 150px;
 }
 
 .btn-submit:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
   background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-}
-
-/* Daily Report Button */
-.btn-report {
-  background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
-  color: white;
-  border: none;
-  padding: 12px 30px;
-  border-radius: 8px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  flex: 1;
-  min-width: 130px;
-}
-
-.btn-report:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(33, 147, 176, 0.3);
-  background: linear-gradient(135deg, #6dd5ed 0%, #2193b0 100%);
-}
-
-/* Weekly Button */
-.btn-weekly {
-  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
-  color: white;
-  border: none;
-  padding: 12px 30px;
-  border-radius: 8px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  flex: 1;
-  min-width: 130px;
-}
-
-.btn-weekly:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(243, 156, 18, 0.3);
-  background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%);
-}
-
-/* Cumulative Button */
-.btn-cumulative {
-  background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
-  color: white;
-  border: none;
-  padding: 12px 30px;
-  border-radius: 8px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  flex: 1;
-  min-width: 130px;
-}
-
-.btn-cumulative:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(142, 68, 173, 0.3);
-  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
 }
 
 /* PDF Button */
@@ -209,7 +149,7 @@ button {
   cursor: pointer;
   transition: all 0.3s ease;
   flex: 1;
-  min-width: 130px;
+  min-width: 150px;
 }
 
 .btn-pdf:hover {
@@ -229,7 +169,7 @@ button {
   cursor: pointer;
   transition: all 0.3s ease;
   flex: 1;
-  min-width: 130px;
+  min-width: 150px;
 }
 
 .btn-excel:hover {
@@ -249,7 +189,7 @@ button {
   cursor: pointer;
   transition: all 0.3s ease;
   flex: 1;
-  min-width: 130px;
+  min-width: 150px;
 }
 
 .btn-word:hover {
@@ -272,7 +212,7 @@ button {
   display: inline-block;
   text-align: center;
   flex: 1;
-  min-width: 130px;
+  min-width: 150px;
 }
 
 .btn-back:hover {
@@ -280,7 +220,7 @@ button {
   transform: translateY(-2px);
 }
 
-/* Records Button */
+/* Records Button for Dashboard */
 .btn-records {
   background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
   color: white;
@@ -300,6 +240,80 @@ button {
 .btn-records:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(52, 152, 219, 0.3);
+}
+
+/* Daily Report Button */
+.btn-daily {
+  background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 150px;
+}
+
+.btn-daily:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(33, 147, 176, 0.3);
+  background: linear-gradient(135deg, #6dd5ed 0%, #2193b0 100%);
+}
+
+/* Weekly Report Button */
+.btn-weekly {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 150px;
+}
+
+.btn-weekly:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(243, 156, 18, 0.3);
+  background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%);
+}
+
+/* Cumulative Report Button */
+.btn-cumulative {
+  background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 150px;
+}
+
+.btn-cumulative:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(142, 68, 173, 0.3);
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+}
+
+/* Report Export Section */
+.report-export-section {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+}
+
+.report-export-section h3 {
+  text-align: left;
+  margin-bottom: 15px;
+  color: #333;
 }
 
 /* Footer */
@@ -332,151 +346,7 @@ button {
   background: darkblue;
 }
 
-/* ===================== */
-/* STUDENT RECORDS PAGE STYLES */
-/* ===================== */
-
-.selector-section {
-    margin-bottom: 20px;
-    text-align: left;
-}
-
-.selector-section label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 8px;
-    color: #333;
-}
-
-.subject-select, .student-select {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 16px;
-    background: white;
-    cursor: pointer;
-}
-
-.subject-select:focus, .student-select:focus {
-    outline: none;
-    border-color: #667eea;
-}
-
-/* Stats Cards */
-.stats-container {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
-    margin: 25px 0;
-}
-
-.stat-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.stat-value {
-    font-size: 32px;
-    font-weight: bold;
-    margin-bottom: 8px;
-}
-
-.stat-label {
-    font-size: 14px;
-    opacity: 0.9;
-}
-
-/* Student Info Card */
-.student-info-card {
-    background: #f0f0ff;
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 25px;
-    text-align: center;
-}
-
-.student-info-card h3 {
-    margin: 0 0 10px 0;
-    color: #667eea;
-    font-size: 24px;
-}
-
-.student-info-card p {
-    margin: 0;
-    color: #666;
-}
-
-/* Attendance Table */
-.history-section {
-    margin-top: 25px;
-}
-
-.history-section h3 {
-    text-align: left;
-    margin-bottom: 15px;
-    color: #333;
-}
-
-.table-wrapper {
-    overflow-x: auto;
-    max-height: 400px;
-    overflow-y: auto;
-    border: 1px solid #e0e0e0;
-    border-radius: 10px;
-}
-
-.attendance-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-}
-
-.attendance-table th,
-.attendance-table td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.attendance-table th {
-    background: #667eea;
-    color: white;
-    position: sticky;
-    top: 0;
-}
-
-.attendance-table tr:hover {
-    background: #f5f5f5;
-}
-
-.status-present {
-    color: #27ae60;
-    font-weight: bold;
-}
-
-.status-absent {
-    color: #e74c3c;
-    font-weight: bold;
-}
-
-/* Responsive */
-@media (max-width: 600px) {
-    .stats-container {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .attendance-table th,
-    .attendance-table td {
-        padding: 8px;
-        font-size: 12px;
-    }
-}
-
+/* Responsive Design */
 @media (max-width: 750px) {
   .container {
     width: 95%;
@@ -487,12 +357,154 @@ button {
     flex-direction: column;
   }
   
-  .btn-submit, .btn-report, .btn-weekly, .btn-cumulative, .btn-pdf, .btn-excel, .btn-word, .btn-back, .btn-records {
+  .btn-submit, .btn-pdf, .btn-excel, .btn-word, .btn-back, .btn-records,
+  .btn-daily, .btn-weekly, .btn-cumulative {
     width: 100%;
     min-width: unset;
   }
   
   .subjects {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ===================== */
+/* STUDENT RECORDS PAGE STYLES */
+/* ===================== */
+
+.selector-section {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.selector-section label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.subject-select, .student-select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+  cursor: pointer;
+}
+
+.subject-select:focus, .student-select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin: 25px 0;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.student-info-card {
+  background: #f0f0ff;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.student-info-card h3 {
+  margin: 0 0 10px 0;
+  color: #667eea;
+  font-size: 24px;
+}
+
+.student-info-card p {
+  margin: 0;
+  color: #666;
+}
+
+.history-section {
+  margin-top: 25px;
+}
+
+.history-section h3 {
+  text-align: left;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+}
+
+.attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.attendance-table th,
+.attendance-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.attendance-table th {
+  background: #667eea;
+  color: white;
+  position: sticky;
+  top: 0;
+}
+
+.attendance-table tr:hover {
+  background: #f5f5f5;
+}
+
+.status-present {
+  color: #27ae60;
+  font-weight: bold;
+}
+
+.status-absent {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+@media (max-width: 600px) {
+  .stats-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .attendance-table th,
+  .attendance-table td {
+    padding: 8px;
+    font-size: 12px;
   }
 }
